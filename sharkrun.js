@@ -9,30 +9,66 @@ function randomChoice(arr) {
 }
 
 let sprites = {}
-const width = 1000
-const height = 600
+
+function loadSprites(spriteList, callback) {
+  let count = 0
+  Object.keys(spriteList).forEach(key => {
+    loadImage(spriteList[key], function(img) {
+      sprites[key] = this
+      count++
+      if (count == Object.keys(spriteList).length) {
+        callback()
+      }
+    })
+  })
+}
+
+const screenWidth = 1000
+const screenHeight = 600
 const sharkHeight = 113
+const sharkWidth = 100
+const sharkStartSpeed = 20
+const defaultGravity = 30
+const maxHeightAbovePreviousPlatform = 200
+const minimumPlatformWidth = 100
+const maximumPlatformWidth = 600
+const sharkLeftPosition = 100
+const dashSpeedIncrease = 5
+const maxStimCount = 5
+const startingStims = 3
+const stimRadius = 15
+const platformHeight = 20
+const maxDashTime = 0.3
+const maxDistanceToTopOfScreen = 200
+const chanceOfStim = 0.1
+const maxDistanceBetweenPlatforms = 200
+
 const context = document.getElementById('game').getContext('2d')
-const dashSpeed = 10
 context.imageSmoothingQuality = 'high'
 
 let Game = function() {
-  let sharkVPos = height/2
-  let sharkHPos = 0
-  let sharkVSpeed = 0
-  let sharkHSpeed = 10
-  let gravity = 30
-  let time = 0
-  let stimCount = 0
-  let world = [{
-    posX: -50,
-    posY: 100,
-    width: 2000,
-    color: 'white',
-    hasStim: true
-  }]
-  let jumpCount = 0
-  let dashTime = 0
+  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,gravity,score,stimCount,world,jumpCount,dashTime
+
+  this.init = function() {
+    sharkVPos = screenHeight/2
+    sharkHPos = 0
+    sharkVSpeed = 0
+    sharkHSpeed = 20
+    gravity = defaultGravity
+    score = 0
+    stimCount = startingStims
+    world = [{
+      posX: -50,
+      posY: 100,
+      width: 2000,
+      color: 'white',
+      hasStim: true
+    }]
+    jumpCount = 0
+    dashTime = 0
+  }
+
+  this.init()
 
   this.jump = function() {
     if (jumpCount >= 2) {
@@ -41,12 +77,15 @@ let Game = function() {
     sharkVSpeed = 12
     jumpCount++
   }
+
   this.dash = function() {
     if (dashTime > 0 || stimCount <= 0) {
       return
     }
-    sharkHSpeed += dashSpeed
-    dashTime = 1.0
+    sharkHSpeed += dashSpeedIncrease
+    sharkVSpeed = 0 // shark stops moving up or down when dashing
+    gravity = 0
+    dashTime = maxDashTime
     stimCount--
   }
 
@@ -56,7 +95,7 @@ let Game = function() {
     let rightMost = sharkHPos
     let lastPosY = 0
     world.forEach((platform, index) => {
-      if (platform.posX + platform.width+200 < sharkHPos) {
+      if (platform.posX + platform.width+sharkLeftPosition < sharkHPos) {
         world.splice(index, 1)
       }
       if (rightMost < platform.posX + platform.width) {
@@ -64,16 +103,16 @@ let Game = function() {
       }
       lastPosY = platform.posY
     })
-    if (lastPosY > height - 400) {
-      lastPosY = height - 400
+    if (lastPosY > screenHeight - (maxDistanceToTopOfScreen+maxHeightAbovePreviousPlatform)) {
+      lastPosY = screenHeight - (maxDistanceToTopOfScreen+maxHeightAbovePreviousPlatform)
     }
-    if (rightMost - sharkHPos < 2000) {
+    if (rightMost - sharkHPos < screenWidth * 2) {
       world.push({ 
-        posX: rightMost + Math.random()*200,
-        posY: Math.random() * (lastPosY+200) + 20,
-        width: Math.random() * 500 + 100,
+        posX: rightMost + Math.random()*maxDistanceBetweenPlatforms,
+        posY: Math.random() * (lastPosY+maxHeightAbovePreviousPlatform) + platformHeight,
+        width: Math.random() * (maximumPlatformWidth - minimumPlatformWidth) + minimumPlatformWidth,
         color: randomChoice(['white', 'yellow', 'purple', 'red']),
-        hasStim: Math.random() > 0.9
+        hasStim: Math.random() > (1 - chanceOfStim)
       })
     }
   }
@@ -82,15 +121,16 @@ let Game = function() {
     if (this.gameState != 'playing') {
       return
     }
-    time += dt
+    score += Math.floor(dt * 100)
     if (dashTime > 0) {
       dashTime -= dt
       if (dashTime <= 0) {
         dashTime = 0
-        sharkHSpeed -= dashSpeed
+        gravity = defaultGravity
+        sharkHSpeed -= dashSpeedIncrease
       }
     }
-    sharkVSpeed -= dt * gravity * (dashTime > 0 ? 0.5 : 1)
+    sharkVSpeed -= dt * gravity
     sharkVPos += sharkVSpeed
     if (sharkVPos < -200) {
       this.gameState = 'end'
@@ -104,8 +144,8 @@ let Game = function() {
       //shark is within the platform
       //only handle platform collisions if we are moving down:
       if (sharkVSpeed < 0) {
-        if (sharkHPos+100 > platform.posX && sharkHPos < platform.posX+platform.width) {
-          if (sharkVPos < platform.posY && sharkVPos > platform.posY - 20) {
+        if (sharkHPos+sharkWidth > platform.posX && sharkHPos < platform.posX+platform.width) {
+          if (sharkVPos < platform.posY && sharkVPos > platform.posY - platformHeight) {
             sharkVPos = platform.posY
             jumpCount = 0
             sharkVSpeed = 0
@@ -114,12 +154,13 @@ let Game = function() {
       }
       if (platform.hasStim) {
         stimX = platform.posX + platform.width/2
-        stimY = platform.posY + 15
+        stimY = platform.posY + stimRadius
         if (
-          sharkHPos+100 > stimX-15 &&
-          sharkHPos < stimX+15 &&
-          sharkVPos < stimY+15 &&
-          sharkVPos+100 > stimY-15
+          sharkHPos+sharkWidth > stimX-stimRadius &&
+          sharkHPos < stimX+stimRadius &&
+          sharkVPos < stimY+stimRadius &&
+          sharkVPos+sharkHeight > stimY-stimRadius &&
+          stimCount < maxStimCount
         ) {
           platform.hasStim = false
           stimCount++
@@ -135,12 +176,12 @@ let Game = function() {
       return
     }
     if (this.gameState == 'end') {
-      context.clearRect(0,0,width,height)
+      context.clearRect(0,0,screenWidth,screenHeight)
       context.font = "60px Arial"
       context.fillStyle = 'white'
       context.textAlign="center"; 
-      context.fillText('GAME OVER',500,200)
-      context.fillText('YOUR TIME: '+Math.floor(time*10)/10,500,400)
+      context.fillText('GAME OVER',screenWidth/2,screenHeight / 3)
+      context.fillText('YOUR SCORE: '+score,screenWidth/2,screenHeight*2/3)
       context.textAlign="start"; 
       return
     }
@@ -149,12 +190,12 @@ let Game = function() {
       context.drawImage(sprites['bg'], x, 0)
     }
     world.forEach(platform => {
-      screenX = platform.posX - sharkHPos + 100
+      screenX = platform.posX - sharkHPos + sharkWidth
       context.fillStyle = platform.color
-      context.fillRect(screenX, height-platform.posY, platform.width, 20)
+      context.fillRect(screenX, screenHeight-platform.posY, platform.width, 20)
       if (platform.hasStim) {
         context.beginPath()
-        context.arc(screenX + platform.width / 2, height-platform.posY-15, 15, 0, 2 * Math.PI, false)
+        context.arc(screenX + platform.width / 2, screenHeight-platform.posY-15, 15, 0, 2 * Math.PI, false)
         context.fillStyle = 'white'
         context.fill()
         context.lineWidth = 1
@@ -164,13 +205,13 @@ let Game = function() {
     })
     if (dashTime > 0) {
       for (i=0; i<100; i+=3) {
-        context.drawImage(sprites['shark'], i, height-sharkVPos-sharkHeight)
+        context.drawImage(sprites['shark'], i, screenHeight-sharkVPos-sharkHeight)
       }
     }
-    context.drawImage(sprites['shark'], 100, height-sharkVPos-sharkHeight)
+    context.drawImage(sprites['shark'], 100, screenHeight-sharkVPos-sharkHeight)
     context.font = "30px Arial"
     context.fillStyle = 'white'
-    context.fillText('TIME: '+Math.floor(time),10,30)
+    context.fillText('SCORE: '+score,10,30)
     context.fillText('STIMS: '+stimCount,10,60)
   }
 
@@ -180,7 +221,8 @@ let Game = function() {
       return
     }
     if (this.gameState == 'end') {
-      this.gameState == 'start'
+      this.init()
+      this.gameState = 'start'
       return
     }
     if (keyCode == 90) { //z
@@ -213,13 +255,10 @@ window.addEventListener('keydown', function(event) {
   game.keyDown(event.keyCode);
 });
 
-loadImage('./sharkynobg.png', function() {
-  sprites['shark'] = this
-})
-loadImage('./background.jpg', function() {
-  sprites['bg'] = this
-})
-loadImage('./start.png', function() {
-  sprites['start'] = this
+loadSprites({
+  'shark': './sharkynobg.png',
+  'bg': './background.jpg',
+  'start': './start.png'
+}, () => {
   window.requestAnimationFrame(loop)
 })
