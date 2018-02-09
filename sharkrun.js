@@ -27,21 +27,23 @@ const screenWidth = 1000
 const screenHeight = 600
 const sharkHeight = 113
 const sharkWidth = 100
-const sharkStartSpeed = 20
-const defaultGravity = 30
+const sharkStartSpeed = 15
+const speedIncrementor = 0.2
+const jumpSpeed = 14.5
+const defaultGravity = 40
 const maxHeightAbovePreviousPlatform = 200
 const minimumPlatformWidth = 100
-const maximumPlatformWidth = 600
+const maximumPlatformWidth = 800
 const sharkLeftPosition = 100
 const dashSpeedIncrease = 5
-const maxStimCount = 5
+const maxStimCount = 10
 const startingStims = 3
 const stimRadius = 15
 const platformHeight = 20
 const maxDashTime = 0.3
 const maxDistanceToTopOfScreen = 200
 const chanceOfStim = 0.1
-const maxDistanceBetweenPlatforms = 200
+const maxDistanceBetweenPlatforms = 500
 
 const context = document.getElementById('game').getContext('2d')
 context.imageSmoothingQuality = 'high'
@@ -53,7 +55,7 @@ let Game = function() {
     sharkVPos = screenHeight/2
     sharkHPos = 0
     sharkVSpeed = 0
-    sharkHSpeed = 20
+    sharkHSpeed = sharkStartSpeed
     gravity = defaultGravity
     score = 0
     stimCount = startingStims
@@ -71,17 +73,22 @@ let Game = function() {
   this.init()
 
   this.jump = function() {
-    if (jumpCount >= 2) {
+    if (jumpCount >= 2 || this.dashTime > 0) {
       return
     }
-    sharkVSpeed = 12
+    sharkVSpeed = jumpSpeed
     jumpCount++
   }
 
   this.dash = function() {
-    if (dashTime > 0 || stimCount <= 0) {
+    if (stimCount <= 0) {
       return
     }
+    if (dashTime > 0) {
+      dashTime += maxDashTime
+      return
+    }
+    jumpCount = 0
     sharkHSpeed += dashSpeedIncrease
     sharkVSpeed = 0 // shark stops moving up or down when dashing
     gravity = 0
@@ -118,6 +125,7 @@ let Game = function() {
   }
 
   this.update = function(dt) {
+    const prevSharkVPos = sharkVPos
     if (this.gameState != 'playing') {
       return
     }
@@ -137,15 +145,15 @@ let Game = function() {
       return
     }
     sharkHPos += sharkHSpeed
-    sharkHSpeed += 0.1 * dt
+    sharkHSpeed += speedIncrementor * dt
     this.generateWorld()
 
     world.forEach(platform => {
       //shark is within the platform
       //only handle platform collisions if we are moving down:
-      if (sharkVSpeed < 0) {
+      if (sharkVSpeed < 0 && prevSharkVPos >= platform.posY) {
         if (sharkHPos+sharkWidth > platform.posX && sharkHPos < platform.posX+platform.width) {
-          if (sharkVPos < platform.posY && sharkVPos > platform.posY - platformHeight) {
+          if (sharkVPos < platform.posY) {
             sharkVPos = platform.posY
             jumpCount = 0
             sharkVSpeed = 0
