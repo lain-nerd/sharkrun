@@ -44,12 +44,13 @@ const maxDashTime = 0.3
 const maxDistanceToTopOfScreen = 200
 const chanceOfStim = 0.1
 const maxDistanceBetweenPlatforms = 500
+const minDistanceBetweenPlatforms = sharkWidth
 
 const context = document.getElementById('game').getContext('2d')
 context.imageSmoothingQuality = 'high'
 
 let Game = function() {
-  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,gravity,score,stimCount,world,jumpCount,dashTime
+  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,gravity,score,stimCount,world,jumpCount,dashTime,cooldown=0
 
   this.init = function() {
     sharkVPos = screenHeight/2
@@ -115,7 +116,7 @@ let Game = function() {
     }
     if (rightMost - sharkHPos < screenWidth * 2) {
       world.push({ 
-        posX: rightMost + Math.random()*maxDistanceBetweenPlatforms,
+        posX: rightMost + Math.random()*maxDistanceBetweenPlatforms + minDistanceBetweenPlatforms,
         posY: Math.random() * (lastPosY+maxHeightAbovePreviousPlatform) + platformHeight,
         width: Math.random() * (maximumPlatformWidth - minimumPlatformWidth) + minimumPlatformWidth,
         color: randomChoice(['white', 'yellow', 'purple', 'red']),
@@ -125,10 +126,11 @@ let Game = function() {
   }
 
   this.update = function(dt) {
-    const prevSharkVPos = sharkVPos
     if (this.gameState != 'playing') {
+      cooldown -= dt
       return
     }
+    const prevSharkVPos = sharkVPos
     score += Math.floor(dt * 100)
     if (dashTime > 0) {
       dashTime -= dt
@@ -142,6 +144,7 @@ let Game = function() {
     sharkVPos += sharkVSpeed
     if (sharkVPos < -200) {
       this.gameState = 'end'
+      cooldown = 1.5
       return
     }
     sharkHPos += sharkHSpeed
@@ -180,6 +183,7 @@ let Game = function() {
 
   this.render = function() {
     if (this.gameState == 'start') {
+      cooldown--;
       context.drawImage(sprites['start'], 0, 0)
       return
     }
@@ -228,7 +232,7 @@ let Game = function() {
       this.gameState = 'playing'
       return
     }
-    if (this.gameState == 'end') {
+    if (this.gameState == 'end' && cooldown <= 0) {
       this.init()
       this.gameState = 'start'
       return
