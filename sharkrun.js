@@ -246,8 +246,6 @@ let Game = function() {
   }
 }
 
-
-
 let game = new Game()
 
 let lastTime;
