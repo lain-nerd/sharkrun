@@ -8,6 +8,10 @@ function randomChoice(arr) {
   return arr[Math.floor(arr.length * Math.random())];
 }
 
+function isMobileDevice() {
+  return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+};
+
 let sprites = {}
 
 function loadSprites(spriteList, callback) {
@@ -22,6 +26,8 @@ function loadSprites(spriteList, callback) {
     })
   })
 }
+
+const supportsTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints;
 
 const screenWidth = 1000
 const screenHeight = 600
@@ -38,7 +44,7 @@ const sharkLeftPosition = 100
 const dashSpeedIncrease = 5
 const maxStimCount = 10
 const startingStims = 3
-const stimRadius = 15
+//const stimRadius = 15
 const platformHeight = 20
 const maxDashTime = 0.3
 const maxDistanceToTopOfScreen = 200
@@ -46,7 +52,8 @@ const chanceOfStim = 0.1
 const maxDistanceBetweenPlatforms = 500
 const minDistanceBetweenPlatforms = sharkWidth
 
-const context = document.getElementById('game').getContext('2d')
+const canvas = document.getElementById('game')
+const context = canvas.getContext('2d')
 context.imageSmoothingQuality = 'high'
 
 let Game = function() {
@@ -65,7 +72,8 @@ let Game = function() {
       posY: 100,
       width: 2000,
       color: 'white',
-      hasStim: true
+      hasStim: true,
+      stimSprite: sprites['ice2']
     }]
     jumpCount = 0
     dashTime = 0
@@ -102,7 +110,7 @@ let Game = function() {
     stimCount--
   }
 
-  this.gameState = 'start'
+  this.gameState = supportsTouch ? 'prestart' : 'start'
 
   this.generateWorld = function() {
     let rightMost = sharkHPos
@@ -125,7 +133,8 @@ let Game = function() {
         posY: Math.random() * (lastPosY+maxHeightAbovePreviousPlatform) + platformHeight,
         width: Math.random() * (maximumPlatformWidth - minimumPlatformWidth) + minimumPlatformWidth,
         color: randomChoice(['white', 'yellow', 'purple', 'red']),
-        hasStim: Math.random() > (1 - chanceOfStim)
+        hasStim: Math.random() > (1 - chanceOfStim),
+        stimSprite: sprites['ice'+Math.floor(Math.random() * 6)]
       })
     }
   }
@@ -183,17 +192,20 @@ let Game = function() {
         }
       }
       if (platform.hasStim) {
-        stimX = platform.posX + platform.width/2
-        stimY = platform.posY + stimRadius
+        const sprite = platform.stimSprite
+        stimX = platform.posX + platform.width/2 - sprite.width/2
+        stimY = platform.posY
+        console.log(sharkHPos, sharkVPos, stimX, stimY, sprite.width, sprite.height)
         if (
-          sharkHPos+sharkWidth > stimX-stimRadius &&
-          sharkHPos < stimX+stimRadius &&
-          sharkVPos < stimY+stimRadius &&
-          sharkVPos+sharkHeight > stimY-stimRadius &&
+          sharkHPos+sharkWidth > stimX &&
+          sharkHPos < stimX+sprite.width &&
+          sharkVPos < stimY + sprite.height &&
+          sharkVPos+sharkHeight >= stimY &&
           stimCount < maxStimCount
         ) {
           platform.hasStim = false
           stimCount++
+          score += 100
         }
       }
     })
@@ -201,14 +213,23 @@ let Game = function() {
   }
 
   this.render = function() {
-    if (this.gameState == 'start') {
+    if (this.gameState == 'start' || this.gameState == 'prestart') {
       cooldown--
       context.drawImage(sprites['start'], 0, 0)
       context.font = "30px Arial"
       context.fillStyle = 'yellow'
       context.textAlign="left"; 
-      context.fillText('Z - jump',50,300)
-      context.fillText('X - use crystal',50,350)
+      
+      if (supportsTouch) {
+        context.fillText('Touch right side - jump',50,300)
+        context.fillText('Touch left side - use crystal',50,350)
+        context.fillText('Touch to begin',50,450)
+      } else {
+        context.fillText('Z - jump',50,300)
+        context.fillText('X - use crystal',50,350)
+        context.fillText('Press Z or X to start',50,450)
+      }
+      
       return
     }
     if (this.gameState == 'end') {
@@ -234,13 +255,8 @@ let Game = function() {
       context.fillStyle = platform.color
       context.fillRect(screenX, screenHeight-platform.posY, platform.width, 20)
       if (platform.hasStim) {
-        context.beginPath()
-        context.arc(screenX + platform.width / 2, screenHeight-platform.posY-15, 15, 0, 2 * Math.PI, false)
-        context.fillStyle = 'white'
-        context.fill()
-        context.lineWidth = 1
-        context.strokeStyle = 'yellow'
-        context.stroke()
+        const sprite = platform.stimSprite
+        context.drawImage(sprite, screenX + platform.width / 2 - sprite.width/2, screenHeight-platform.posY-sprite.height)
       }
     })
     if (dashTime > 0) {
@@ -252,66 +268,120 @@ let Game = function() {
     context.font = "30px Arial"
     context.fillStyle = 'white'
     context.textAlign='start';
-    context.fillText('SCORE: '+score,10,30)
-    context.fillText('CRYSTALS: '+stimCount,10,60)
+    context.fillText('SCORE: '+score, 10, 30)
+    context.fillText('CRYSTALS: '+stimCount, 10, 60)
 
     context.font = "20px Arial"
     context.textAlign="end";
-    context.fillText('PREVIOUS BEST: '+bestScore,screenWidth-20,20) 
+    context.fillText('PREVIOUS BEST: '+bestScore, screenWidth-20,20) 
   }
 
-  this.keyDown = function(keyCode) {
-    if (this.gameState == 'start') {
-      this.gameState = 'playing'
-      return
-    }
-    if (this.gameState == 'end' && cooldown <= 0) {
+  this.action = function(action) {
+    if ((this.gameState == 'prestart' || this.gameState == 'end') && cooldown <= 0) {
       this.init()
       this.gameState = 'start'
       return
     }
-    if (keyCode == 90) { //z
-      this.jump()
+
+    if (action !== '' && this.gameState == 'start') {
+      this.gameState = 'playing'
+      return
     }
-    if (keyCode == 88) { //x
+
+    if (action == 'jump') { //z
+      this.jump()
+      return
+    }
+    if (action == 'dash') { //x
       this.dash()
+      return
     }
   }
-  this.keyUp = function(keyCode) {
-    if (keyCode == 90) { //z
+  this.endAction = function(action) {
+    if (action == 'jump') { //z
       jumping = false
     }
   }
+
 }
+function startGame() {
+  let game = new Game()
 
-let game = new Game()
-
-let lastTime;
-let loop = function(now) {
-  window.requestAnimationFrame(loop)
-  if(!lastTime){ lastTime=now; return }
-  let dt=(now - lastTime)/1000
-  if (dt > 0.1) {
-    dt = 0.1
+  let lastTime;
+  let loop = function(now) {
+    window.requestAnimationFrame(loop)
+    if(!lastTime){ lastTime=now; return }
+    let dt=(now - lastTime)/1000
+    if (dt > 0.1) {
+      dt = 0.1
+    }
+    lastTime = now
+    game.update(dt)
+    game.render()
   }
-  lastTime = now
-  game.update(dt)
-  game.render()
+  window.requestAnimationFrame(loop)
+
+  window.addEventListener('keydown', function(event) {
+    if (event.repeat) return
+    let action = ''
+    if (event.keyCode == 90) { //z
+      action = 'jump'
+    }
+    if (event.keyCode == 88) { //x
+      action = 'dash'
+    }
+    game.action(action)
+    return false
+  })
+
+  window.addEventListener('keyup', function(event) {
+    game.endAction(event.keyCode == 90 ? 'jump' : '')
+  })
+
+  const actionFromScreenLocation = x => x < window.innerWidth / 2 ? 'dash' : 'jump'
+
+  window.addEventListener('touchstart', function(event) {
+
+    if (supportsTouch) {
+      if (screenfull.enabled) {
+        screenfull.request();
+      }
+    }
+
+    for(let i=0;i<event.changedTouches.length;i++) {
+      game.action(actionFromScreenLocation(event.changedTouches[i].clientX))
+    }
+    
+    return false
+  });
+
+  window.addEventListener('touchend', function(event) {
+    for(let i=0;i<event.changedTouches.length;i++) {
+      game.endAction(actionFromScreenLocation(event.changedTouches[i].clientX))
+    }
+
+    return false
+  })
+  if (supportsTouch) {
+    canvas.addEventListener('click', function makeFS(event) {
+      if (screenfull.enabled)
+        screenfull.request(document.getElementById('gameArea'))
+      canvas.removeEventListener('click', makeFS)
+    })
+  }
 }
 
-window.addEventListener('keydown', function(event) {
-  if (event.repeat) return
-  game.keyDown(event.keyCode);
-});
-
-window.addEventListener('keyup', function(event) {
-  game.keyUp(event.keyCode);
-});
 
 loadSprites({
   'shark': './sharkynobg.png',
   'bg': './background.jpg',
-  'start': './start.png'
+  'start': './start.png',
+  'ice0': 'crystals/ice_1.png',
+  'ice1': 'crystals/ice_2.png',
+  'ice2': 'crystals/ice_3.png',
+  'ice3': 'crystals/ice_4.png',
+  'ice4': 'crystals/ice_5.png',
+  'ice5': 'crystals/ice_6.png'
 }, () => {
-  window.requestAnimationFrame(loop)
+  startGame();
 })
