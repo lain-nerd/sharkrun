@@ -29,7 +29,7 @@ const sharkHeight = 113
 const sharkWidth = 100
 const sharkStartSpeed = 15
 const speedIncrementor = 0.2
-const jumpSpeed = 14.5
+const jumpSpeed = 10
 const defaultGravity = 40
 const maxHeightAbovePreviousPlatform = 200
 const minimumPlatformWidth = 100
@@ -50,7 +50,7 @@ const context = document.getElementById('game').getContext('2d')
 context.imageSmoothingQuality = 'high'
 
 let Game = function() {
-  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,gravity,score,stimCount,world,jumpCount,dashTime,cooldown=0
+  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,gravity,score,stimCount,world,jumpCount,dashTime,jumpTime,jumping,cooldown=0
 
   this.init = function() {
     sharkVPos = screenHeight/2
@@ -69,6 +69,8 @@ let Game = function() {
     }]
     jumpCount = 0
     dashTime = 0
+    jumpTime = 0
+    jumping = false
   }
 
   this.init()
@@ -78,6 +80,8 @@ let Game = function() {
       return
     }
     sharkVSpeed = jumpSpeed
+    jumping = true;
+    jumpTime = 0;
     jumpCount++
   }
 
@@ -147,6 +151,12 @@ let Game = function() {
       cooldown = 1.5
       return
     }
+    if (jumping) {
+      jumpTime+=dt
+      if (jumpTime < 0.3) {
+        sharkVSpeed = jumpSpeed
+      }
+    }
     sharkHPos += sharkHSpeed
     sharkHSpeed += speedIncrementor * dt
     this.generateWorld()
@@ -183,7 +193,7 @@ let Game = function() {
 
   this.render = function() {
     if (this.gameState == 'start') {
-      cooldown--;
+      cooldown--
       context.drawImage(sprites['start'], 0, 0)
       return
     }
@@ -244,6 +254,11 @@ let Game = function() {
       this.dash()
     }
   }
+  this.keyUp = function(keyCode) {
+    if (keyCode == 90) { //z
+      jumping = false
+    }
+  }
 }
 
 let game = new Game()
@@ -262,7 +277,12 @@ let loop = function(now) {
 }
 
 window.addEventListener('keydown', function(event) {
+  if (event.repeat) return
   game.keyDown(event.keyCode);
+});
+
+window.addEventListener('keyup', function(event) {
+  game.keyUp(event.keyCode);
 });
 
 loadSprites({
