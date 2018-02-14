@@ -15,7 +15,7 @@
     const supportsTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints;
 
     const gameOptions = {
-      noPrestart: false,
+      noPrestart: !supportsTouch,
       showTouchControls: supportsTouch
     }
     
