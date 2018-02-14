@@ -51,6 +51,7 @@ const chanceOfStim = 0.1
 const maxDistanceBetweenPlatforms = 500
 const minDistanceBetweenPlatforms = sharkWidth
 
+const canvas = document.getElementById('game')
 const context = canvas.getContext('2d')
 context.imageSmoothingQuality = 'high'
 
@@ -108,7 +109,7 @@ let Game = function() {
     stimCount--
   }
 
-  this.gameState = supportsTouch && !noPrestart ? 'prestart' : 'start'
+  this.gameState = !gameOptions.noPrestart ? 'prestart' : 'start'
 
   this.generateWorld = function() {
     let rightMost = sharkHPos
@@ -218,7 +219,7 @@ let Game = function() {
       context.fillStyle = 'yellow'
       context.textAlign="left"; 
       
-      if (supportsTouch) {
+      if (gameOptions.showTouchControls) {
         context.fillText('Touch right side - jump',50,300)
         context.fillText('Touch left side - use crystal',50,350)
         context.fillText('Touch to begin',50,450)
@@ -354,6 +355,14 @@ function startGame() {
 
     return false
   })
+
+  if (!gameOptions.noPrestart) {
+    canvas.addEventListener('click', function makeFS(event) {
+      if (screenfull.enabled)
+        screenfull.request(document.getElementById('gameArea'))
+      canvas.removeEventListener('click', makeFS)
+    })
+  }
 }
 
 

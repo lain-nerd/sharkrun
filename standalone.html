@@ -12,9 +12,11 @@
     </div>
   </body>
   <script type="text/javascript">
-    const noPrestart = true
-    const canvas = document.getElementById('game')
     const supportsTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints;
+    const gameOptions = {
+      noPrestart: true,
+      showTouchControls: supportsTouch
+    }
   </script>
   <script type="text/javascript" src="sharkrun.js"></script>
 </html>
