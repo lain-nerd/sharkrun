@@ -50,7 +50,7 @@ const context = document.getElementById('game').getContext('2d')
 context.imageSmoothingQuality = 'high'
 
 let Game = function() {
-  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,gravity,score,stimCount,world,jumpCount,dashTime,jumpTime,jumping,cooldown=0
+  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,gravity,score,stimCount,world,jumpCount,dashTime,jumpTime,jumping,newRecord,bestScore,cooldown=0
 
   this.init = function() {
     sharkVPos = screenHeight/2
@@ -71,6 +71,11 @@ let Game = function() {
     dashTime = 0
     jumpTime = 0
     jumping = false
+    bestScore = window.localStorage.getItem('best-score')
+    if (bestScore === null) {
+      bestScore = 0
+    }
+    newRecord=false
   }
 
   this.init()
@@ -86,11 +91,7 @@ let Game = function() {
   }
 
   this.dash = function() {
-    if (stimCount <= 0) {
-      return
-    }
-    if (dashTime > 0) {
-      dashTime += maxDashTime
+    if (stimCount <= 0 || dashTime > 0) {
       return
     }
     jumpCount = 0
@@ -119,7 +120,7 @@ let Game = function() {
       lastPosY = screenHeight - (maxDistanceToTopOfScreen+maxHeightAbovePreviousPlatform)
     }
     if (rightMost - sharkHPos < screenWidth * 2) {
-      world.push({ 
+      world.push({
         posX: rightMost + Math.random()*maxDistanceBetweenPlatforms + minDistanceBetweenPlatforms,
         posY: Math.random() * (lastPosY+maxHeightAbovePreviousPlatform) + platformHeight,
         width: Math.random() * (maximumPlatformWidth - minimumPlatformWidth) + minimumPlatformWidth,
@@ -127,6 +128,15 @@ let Game = function() {
         hasStim: Math.random() > (1 - chanceOfStim)
       })
     }
+  }
+
+  this.dead = function() {
+    this.gameState = 'end'
+    bestScore = window.localStorage.getItem('best-score')
+    if (score > bestScore) {
+      window.localStorage.setItem('best-score', score)
+    }
+    cooldown = 1.5
   }
 
   this.update = function(dt) {
@@ -147,8 +157,7 @@ let Game = function() {
     sharkVSpeed -= dt * gravity
     sharkVPos += sharkVSpeed
     if (sharkVPos < -200) {
-      this.gameState = 'end'
-      cooldown = 1.5
+      this.dead()
       return
     }
     if (jumping) {
@@ -195,6 +204,11 @@ let Game = function() {
     if (this.gameState == 'start') {
       cooldown--
       context.drawImage(sprites['start'], 0, 0)
+      context.font = "30px Arial"
+      context.fillStyle = 'yellow'
+      context.textAlign="left"; 
+      context.fillText('Z - jump',50,300)
+      context.fillText('X - use crystal',50,350)
       return
     }
     if (this.gameState == 'end') {
@@ -202,9 +216,13 @@ let Game = function() {
       context.font = "60px Arial"
       context.fillStyle = 'white'
       context.textAlign="center"; 
-      context.fillText('GAME OVER',screenWidth/2,screenHeight / 3)
-      context.fillText('YOUR SCORE: '+score,screenWidth/2,screenHeight*2/3)
-      context.textAlign="start"; 
+      context.fillText('GAME OVER',screenWidth/2,200)
+      context.fillText('YOUR SCORE: '+score,screenWidth/2,300)
+      if (score >= bestScore) {
+        context.fillText('NEW PERSONAL BEST!!',screenWidth/2,400)
+      } else {
+        context.fillText('PREVIOUS BEST: '+bestScore,screenWidth/2,400)
+      }
       return
     }
     for (let i=0; i<2; i++) {
@@ -233,8 +251,13 @@ let Game = function() {
     context.drawImage(sprites['shark'], 100, screenHeight-sharkVPos-sharkHeight)
     context.font = "30px Arial"
     context.fillStyle = 'white'
+    context.textAlign='start';
     context.fillText('SCORE: '+score,10,30)
-    context.fillText('STIMS: '+stimCount,10,60)
+    context.fillText('CRYSTALS: '+stimCount,10,60)
+
+    context.font = "20px Arial"
+    context.textAlign="end";
+    context.fillText('PREVIOUS BEST: '+bestScore,screenWidth-20,20) 
   }
 
   this.keyDown = function(keyCode) {
