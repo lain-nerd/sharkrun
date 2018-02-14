@@ -1,0 +1,30 @@
+body, html {
+  background-color: black;
+}
+
+#gameArea {
+  background-color: black;
+  border: 1px solid white;
+  width:1000px;
+  height:600px;
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  margin: auto auto;
+  box-sizing: border-box;
+  border: 1px solid white;
+}
+
+#game {
+  max-width: 100%;
+  max-height: 100%;
+  margin: auto auto;
+  display: block;
+  box-sizing: border-box;
+}
+
+@media only screen and (max-device-width: 1000px) {
+  #gameArea {
+    border: none;
+  }
+}

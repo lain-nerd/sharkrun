@@ -27,7 +27,6 @@ function loadSprites(spriteList, callback) {
   })
 }
 
-const supportsTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints;
 
 const screenWidth = 1000
 const screenHeight = 600
@@ -52,7 +51,6 @@ const chanceOfStim = 0.1
 const maxDistanceBetweenPlatforms = 500
 const minDistanceBetweenPlatforms = sharkWidth
 
-const canvas = document.getElementById('game')
 const context = canvas.getContext('2d')
 context.imageSmoothingQuality = 'high'
 
@@ -110,7 +108,7 @@ let Game = function() {
     stimCount--
   }
 
-  this.gameState = supportsTouch ? 'prestart' : 'start'
+  this.gameState = supportsTouch && !noPrestart ? 'prestart' : 'start'
 
   this.generateWorld = function() {
     let rightMost = sharkHPos
@@ -342,12 +340,6 @@ function startGame() {
 
   window.addEventListener('touchstart', function(event) {
 
-    if (supportsTouch) {
-      if (screenfull.enabled) {
-        screenfull.request();
-      }
-    }
-
     for(let i=0;i<event.changedTouches.length;i++) {
       game.action(actionFromScreenLocation(event.changedTouches[i].clientX))
     }
@@ -362,13 +354,6 @@ function startGame() {
 
     return false
   })
-  if (supportsTouch) {
-    canvas.addEventListener('click', function makeFS(event) {
-      if (screenfull.enabled)
-        screenfull.request(document.getElementById('gameArea'))
-      canvas.removeEventListener('click', makeFS)
-    })
-  }
 }
 
 

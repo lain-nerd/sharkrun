@@ -12,17 +12,9 @@
     </div>
   </body>
   <script type="text/javascript">
-    const noPrestart = false
+    const noPrestart = true
     const canvas = document.getElementById('game')
     const supportsTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints;
     document.write('\x3Cscript type="text/javascript" src="sharkrun.js?'+Math.random()+'">\x3C/script>');
-
-    if (supportsTouch) {
-      canvas.addEventListener('click', function makeFS(event) {
-        if (screenfull.enabled)
-          screenfull.request(document.getElementById('gameArea'))
-        canvas.removeEventListener('click', makeFS)
-      })
-    }
   </script>
 </html>
