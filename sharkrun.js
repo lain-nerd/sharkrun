@@ -194,7 +194,6 @@ let Game = function() {
         const sprite = platform.stimSprite
         stimX = platform.posX + platform.width/2 - sprite.width/2
         stimY = platform.posY
-        console.log(sharkHPos, sharkVPos, stimX, stimY, sprite.width, sprite.height)
         if (
           sharkHPos+sharkWidth > stimX &&
           sharkHPos < stimX+sprite.width &&
@@ -246,7 +245,7 @@ let Game = function() {
       return
     }
     for (let i=0; i<2; i++) {
-      const x = (-sharkHPos % 1000) + 1000*i
+      const x = (-sharkHPos*0.5 % sprites['bg'].width) + sprites['bg'].width*i
       context.drawImage(sprites['bg'], x, 0)
     }
     world.forEach(platform => {
