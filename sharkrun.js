@@ -144,7 +144,9 @@ let Game = function() {
   }
 
   this.dead = function() {
-    lastScene = context.getImageData(0,0,screenWidth,screenHeight)
+    try {
+      lastScene = context.getImageData(0,0,screenWidth,screenHeight)
+    } catch (e) {}
     this.gameState = 'end'
     bestScore = window.localStorage.getItem('best-score')
     if (score > bestScore) {
