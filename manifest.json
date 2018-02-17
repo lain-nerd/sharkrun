@@ -10,5 +10,6 @@
   ],
   "start_url": "standalone.html",
   "display": "fullscreen",
+  "background_color": "black",
   "orientation": "landscape"
 }
