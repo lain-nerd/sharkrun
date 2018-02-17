@@ -13,12 +13,10 @@
   </body>
   <script type="text/javascript">
     const supportsTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints;
-
     const gameOptions = {
-      noPrestart: !supportsTouch,
+      fullScreen: supportsTouch,
       showTouchControls: supportsTouch
     }
-    
     document.write('\x3Cscript type="text/javascript" src="sharkrun.js?'+Math.random()+'">\x3C/script>')
   </script>
 </html>

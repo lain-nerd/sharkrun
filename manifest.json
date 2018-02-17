@@ -3,8 +3,8 @@
   "name": "SharkRun",
   "icons": [
     {
-      "src": "sharkynobg.png",
-      "sizes": "96x96",
+      "src": "icon.png",
+      "sizes": "192x192",
       "type": "image/png"
     }
   ],

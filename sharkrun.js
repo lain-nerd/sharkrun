@@ -5,12 +5,12 @@ function loadImage(url, callback) {
 }
 
 function randomChoice(arr) {
-  return arr[Math.floor(arr.length * Math.random())];
+  return arr[Math.floor(arr.length * Math.random())]
 }
 
 function isMobileDevice() {
-  return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
-};
+  return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1)
+}
 
 let sprites = {}
 
@@ -27,13 +27,13 @@ function loadSprites(spriteList, callback) {
   })
 }
 
-
 const screenWidth = 1000
 const screenHeight = 600
 const sharkHeight = 113
 const sharkWidth = 100
 const sharkStartSpeed = 15
 const speedIncrementor = 0.2
+const landingGrace = 20 //extra width for sharky's front to land on things
 const jumpSpeed = 12
 const defaultGravity = 50
 const maxHeightAbovePreviousPlatform = 200
@@ -57,6 +57,7 @@ context.imageSmoothingQuality = 'high'
 
 let Game = function() {
   let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,gravity,score,stimCount,world,jumpCount,dashTime,jumpTime,jumping,newRecord,bestScore,cooldown=0
+  let lastScene=null
 
   this.init = function() {
     sharkVPos = screenHeight/2
@@ -92,8 +93,8 @@ let Game = function() {
       return
     }
     sharkVSpeed = jumpSpeed
-    jumping = true;
-    jumpTime = 0;
+    jumping = true
+    jumpTime = 0
     jumpCount++
   }
 
@@ -109,7 +110,7 @@ let Game = function() {
     stimCount--
   }
 
-  this.gameState = !gameOptions.noPrestart ? 'prestart' : 'start'
+  this.gameState = gameOptions.fullScreen ? 'prestart' : 'start'  //adds an extra touch before starting the game, so it goes full screen on first touch
 
   this.generateWorld = function() {
     let rightMost = sharkHPos
@@ -139,12 +140,13 @@ let Game = function() {
   }
 
   this.dead = function() {
+    lastScene = context.getImageData(0,0,screenWidth,screenHeight)
     this.gameState = 'end'
     bestScore = window.localStorage.getItem('best-score')
     if (score > bestScore) {
       window.localStorage.setItem('best-score', score)
     }
-    cooldown = 1.5
+    cooldown = 1
   }
 
   this.update = function(dt) {
@@ -182,7 +184,7 @@ let Game = function() {
       //shark is within the platform
       //only handle platform collisions if we are moving down:
       if (sharkVSpeed < 0 && prevSharkVPos >= platform.posY) {
-        if (sharkHPos+sharkWidth > platform.posX && sharkHPos < platform.posX+platform.width) {
+        if (sharkHPos+sharkWidth+landingGrace > platform.posX && sharkHPos < platform.posX+platform.width) {
           if (sharkVPos < platform.posY) {
             sharkVPos = platform.posY
             jumpCount = 0
@@ -212,11 +214,10 @@ let Game = function() {
 
   this.render = function() {
     if (this.gameState == 'start' || this.gameState == 'prestart') {
-      cooldown--
       context.drawImage(sprites['start'], 0, 0)
       context.font = "30px Arial"
       context.fillStyle = 'yellow'
-      context.textAlign="left"; 
+      context.textAlign="left"
       
       if (gameOptions.showTouchControls) {
         context.fillText('Touch right side - jump',50,300)
@@ -227,20 +228,35 @@ let Game = function() {
         context.fillText('X - use crystal',50,350)
         context.fillText('Press Z or X to start',50,450)
       }
-      
       return
     }
     if (this.gameState == 'end') {
-      context.clearRect(0,0,screenWidth,screenHeight)
+      if (lastScene !== null) {
+        context.putImageData(lastScene, 0,0)
+        let alpha = 1-cooldown
+        if (alpha > 0.9) {
+          alpha = 0.9
+        }
+        context.fillStyle = 'rgba(0,0,0,' + alpha + ')'
+        context.fillRect(0, 0, screenWidth, screenHeight)
+      } else {
+        context.clearRect(0,0,screenWidth,screenHeight)
+      }
+      context.font = "80px Arial"
+      context.fillStyle = 'white'
+      context.textAlign="center"
+      context.fillText('GAME OVER', screenWidth/2,150)
+      context.font = "60px Arial"
+      context.fillText('YOU SCORED', screenWidth/2,250)
+      context.font = "80px Arial"
+      context.fillStyle = 'yellow'
+      context.fillText(score, screenWidth/2,350)
       context.font = "60px Arial"
       context.fillStyle = 'white'
-      context.textAlign="center"; 
-      context.fillText('GAME OVER',screenWidth/2,200)
-      context.fillText('YOUR SCORE: '+score,screenWidth/2,300)
       if (score >= bestScore) {
-        context.fillText('NEW PERSONAL BEST!!',screenWidth/2,400)
+        context.fillText('NEW PERSONAL BEST!!', screenWidth/2,500)
       } else {
-        context.fillText('PREVIOUS BEST: '+bestScore,screenWidth/2,400)
+        context.fillText('PREVIOUS BEST: '+ bestScore, screenWidth/2,500)
       }
       return
     }
@@ -258,20 +274,23 @@ let Game = function() {
       }
     })
     if (dashTime > 0) {
-      for (i=0; i<100; i+=3) {
+      for (let i=0; i<100; i+=3) {
         context.drawImage(sprites['shark'], i, screenHeight-sharkVPos-sharkHeight)
       }
     }
     context.drawImage(sprites['shark'], 100, screenHeight-sharkVPos-sharkHeight)
-    context.font = "30px Arial"
+    context.font = "40px Arial"
     context.fillStyle = 'white'
-    context.textAlign='start';
-    context.fillText('SCORE: '+score, 10, 30)
-    context.fillText('CRYSTALS: '+stimCount, 10, 60)
+    context.textAlign='start'
+    context.fillText(score, 10, 35)
+
+    for (let i=0; i<stimCount; i++) {
+      context.drawImage(sprites['iceSymbol'], 10+35*i, 40)
+    }
 
     context.font = "20px Arial"
-    context.textAlign="end";
-    context.fillText('PREVIOUS BEST: '+bestScore, screenWidth-20,20) 
+    context.textAlign="end"
+    context.fillText('BEST: '+bestScore, screenWidth-10,20) 
   }
 
   this.action = function(action) {
@@ -305,7 +324,7 @@ let Game = function() {
 function startGame() {
   let game = new Game()
 
-  let lastTime;
+  let lastTime
   let loop = function(now) {
     window.requestAnimationFrame(loop)
     if(!lastTime){ lastTime=now; return }
@@ -336,26 +355,25 @@ function startGame() {
     game.endAction(event.keyCode == 90 ? 'jump' : '')
   })
 
-  const actionFromScreenLocation = x => x < window.innerWidth / 2 ? 'dash' : 'jump'
+  const actionFromCanvasLocation = (x, y) => x < canvas.clientWidth / 2 ? 'dash' : 'jump'
 
-  window.addEventListener('touchstart', function(event) {
-
+  canvas.addEventListener('touchstart', function(event) {
     for(let i=0;i<event.changedTouches.length;i++) {
-      game.action(actionFromScreenLocation(event.changedTouches[i].clientX))
+      game.action(actionFromCanvasLocation(event.changedTouches[i].clientX, event.changedTouches[i].clientY))
     }
     
     return false
-  });
+  })
 
-  window.addEventListener('touchend', function(event) {
+  canvas.addEventListener('touchend', function(event) {
     for(let i=0;i<event.changedTouches.length;i++) {
-      game.endAction(actionFromScreenLocation(event.changedTouches[i].clientX))
+      game.endAction(actionFromCanvasLocation(event.changedTouches[i].clientX, event.changedTouches[i].clientY))
     }
 
     return false
   })
 
-  if (!gameOptions.noPrestart) {
+  if (gameOptions.fullScreen) {
     canvas.addEventListener('click', function makeFS(event) {
       if (screenfull.enabled)
         screenfull.request(document.getElementById('gameArea'))
@@ -374,7 +392,18 @@ loadSprites({
   'ice2': 'crystals/ice_3.png',
   'ice3': 'crystals/ice_4.png',
   'ice4': 'crystals/ice_5.png',
-  'ice5': 'crystals/ice_6.png'
+  'ice5': 'crystals/ice_6.png',
+  'iceSymbol': 'crystals/symbol.png'
 }, () => {
-  startGame();
+  startGame()
 })
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').then(function(registration) {
+    }, function(err) {
+      // registration failed :(
+      console.log('ServiceWorker registration failed: ', err);
+    });
+  });
+}
