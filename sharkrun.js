@@ -12,6 +12,10 @@ function isMobileDevice() {
   return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1)
 }
 
+function clamp(num, min, max) {
+  return num <= min ? min : num >= max ? max : num;
+}
+
 let sprites = {}
 
 function loadSprites(spriteList, callback) {
@@ -53,7 +57,7 @@ const minDistanceBetweenPlatforms = sharkWidth
 
 const canvas = document.getElementById('game')
 const context = canvas.getContext('2d')
-context.imageSmoothingQuality = 'high'
+context.imageSmoothingQuality = 'low'
 
 let Game = function() {
   let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,gravity,score,stimCount,world,jumpCount,dashTime,jumpTime,jumping,newRecord,bestScore,cooldown=0
@@ -233,10 +237,7 @@ let Game = function() {
     if (this.gameState == 'end') {
       if (lastScene !== null) {
         context.putImageData(lastScene, 0,0)
-        let alpha = 1-cooldown
-        if (alpha > 0.9) {
-          alpha = 0.9
-        }
+        const alpha = clamp(1-cooldown, 0, 0.9)
         context.fillStyle = 'rgba(0,0,0,' + alpha + ')'
         context.fillRect(0, 0, screenWidth, screenHeight)
       } else {
@@ -261,7 +262,7 @@ let Game = function() {
       return
     }
     for (let i=0; i<2; i++) {
-      const x = (-sharkHPos*0.5 % sprites['bg'].width) + sprites['bg'].width*i
+      const x = Math.floor((-sharkHPos*0.5 % sprites['bg'].width) + sprites['bg'].width*i)
       context.drawImage(sprites['bg'], x, 0)
     }
     world.forEach(platform => {
@@ -319,8 +320,8 @@ let Game = function() {
       jumping = false
     }
   }
-
 }
+
 function startGame() {
   let game = new Game()
 
