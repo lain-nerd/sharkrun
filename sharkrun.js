@@ -314,6 +314,8 @@ let Game = function() {
           //context.strokeRect(screenX+x*tetrisPieceSize, screenHeight-platform.posY+y*tetrisPieceSize, tetrisPieceSize, tetrisPieceSize)
         }
       }
+      context.fillStyle = 'white'
+      context.fillRect(screenX-3, screenHeight-platform.posY, platform.width, 3)
       if (platform.hasStim) {
         const sprite = platform.stimSprite
         context.drawImage(sprite, screenX + platform.width / 2 - sprite.width/2, screenHeight-platform.posY-sprite.height)
