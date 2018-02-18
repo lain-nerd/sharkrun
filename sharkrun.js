@@ -69,7 +69,7 @@ const minDistanceBetweenPlatforms = sharkWidth
 const minSharkVSpeed = -300
 const maxSharkVSpeed = 300
 const deathHeight = -200
-const tetrisPieceSize = 15
+const tetrisPieceSize = 25
 
 const canvas = document.getElementById('game')
 const context = canvas.getContext('2d')
@@ -315,7 +315,7 @@ let Game = function() {
         }
       }
       context.fillStyle = 'white'
-      context.fillRect(screenX-3, screenHeight-platform.posY, platform.width, 3)
+      context.fillRect(screenX, screenHeight-platform.posY-3, platform.width, 3)
       if (platform.hasStim) {
         const sprite = platform.stimSprite
         context.drawImage(sprite, screenX + platform.width / 2 - sprite.width/2, screenHeight-platform.posY-sprite.height)
