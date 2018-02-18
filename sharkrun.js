@@ -78,7 +78,7 @@ let Game = function() {
   let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,score,stimCount,world,jumpCount,dashTime,jumpTime,jumping,newRecord,bestScore,cooldown=0
   let lastScene=null
 
-  this.init = () => {
+  const init = () => {
     sharkVPos = screenHeight/2
     sharkHPos = 0
     sharkVSpeed = 0
@@ -104,9 +104,9 @@ let Game = function() {
     newRecord=false
   }
 
-  this.init()
+  init()
 
-  this.jump = () => {
+  const jump = () => {
     if (jumpCount >= 2) {
       return
     }
@@ -116,10 +116,18 @@ let Game = function() {
     jumpCount++
   }
 
-  this.dash = () => {
-    if (stimCount <= 0 || dashTime > 0) {
-      return
+  const updateJumping = (dt) => {
+    if (dashTime > 0) return
+
+    jumpTime+=dt
+    if (jumpTime < 0.3) {
+      sharkVSpeed = jumpSpeed
     }
+  }
+
+  const dash = () => {
+    if (stimCount <= 0 || dashTime > 0) return
+
     jumpCount = 0
     jumping = false
     sharkHSpeed += dashSpeedIncrease
@@ -128,10 +136,19 @@ let Game = function() {
     stimCount--
   }
 
+  const updateDashing = (dt) => {
+    dashTime -= dt
+    if (dashTime <= 0) {
+      dashTime = 0
+      sharkHSpeed -= dashSpeedIncrease
+    }
+    sharkVSpeed = 0
+  }
+
   //adds an extra touch before starting the game, so it goes full screen on first touch
   this.gameState = gameOptions.fullScreen ? GAMESTATE.prestart : GAMESTATE.start  
 
-  this.generateWorld = function() {
+  generateWorld = function() {
     let rightMost = sharkHPos
     let lastPosY = 0
     world.forEach((platform, index) => {
@@ -158,7 +175,7 @@ let Game = function() {
     }
   }
 
-  this.dead = () => {
+  const dead = () => {
     try {
       lastScene = context.getImageData(0,0,screenWidth,screenHeight)
     } catch (e) {}
@@ -176,33 +193,24 @@ let Game = function() {
     }
     const prevSharkVPos = sharkVPos
     score += Math.floor(dt * 100)
-
     sharkVSpeed -= dt * gravity
-
     if (dashTime > 0) {
-      dashTime -= dt
-      if (dashTime <= 0) {
-        dashTime = 0
-        sharkHSpeed -= dashSpeedIncrease
-      }
-      sharkVSpeed = 0
+      updateDashing(dt)
+    }
+    if (jumping) {
+      updateJumping(dt)
     }
     
     sharkVSpeed = clamp(sharkVSpeed, minSharkVSpeed, maxSharkVSpeed)
     sharkVPos += sharkVSpeed
     if (sharkVPos < deathHeight) {
-      this.dead()
+      dead()
       return
     }
-    if (jumping && dashTime <= 0) {
-      jumpTime+=dt
-      if (jumpTime < 0.3) {
-        sharkVSpeed = jumpSpeed
-      }
-    }
+
     sharkHPos += sharkHSpeed
     sharkHSpeed += speedIncrementor * dt
-    this.generateWorld()
+    generateWorld()
 
     world.forEach(platform => {
       // shark is within the platform
@@ -337,7 +345,7 @@ let Game = function() {
       case GAMESTATE.prestart:
       case GAMESTATE.end:
         if (cooldown <= 0) {
-          this.init()
+          init()
           this.gameState = GAMESTATE.start
         }
         break
@@ -346,9 +354,9 @@ let Game = function() {
         break
       case GAMESTATE.playing:    
         if (action == ACTION.jump) { //z
-          this.jump()
+          jump()
         } else if (action == ACTION.dash) { //x
-          this.dash()
+          dash()
         }
         break
     }
