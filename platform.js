@@ -19,22 +19,22 @@ function generatePlatform(width) {
 
     //J
     [[true,true,true],[false,false,true]],
-    //[[false,true],[false,true],[true,true]],
+    [[false,true],[false,true],[true,true]],
     [[true,false,false],[true,true,true]],
     [[true,true],[true,false],[true,false]],
 
     //T
     [[true,true,true],[false,true,false]],
-    //[[false,true],[true,true],[false,true]],
-    //[[false,true,false],[true,true,true]],
+    [[false,true],[true,true],[false,true]],
+    [[false,true,false],[true,true,true]],
     [[true,false],[true,true],[true,false]],
     
     //S
     [[true,true,false],[false,true,true]],
-    //[[false,true],[true,true],[true, false]],
+    [[false,true],[true,true],[true, false]],
 
     //Z
-    //[[false,true,true],[true,true,false]],
+    [[false,true,true],[true,true,false]],
     [[true,false],[true,true],[false,true]],
     
   ]
@@ -66,8 +66,8 @@ function generatePlatform(width) {
     }
   }
 
-  const getFirstBlackXLocation = () => {
-    for (let x = 0;x<platform.length;x++) {
+  const getFirstBlackXLocation = (start=0) => {
+    for (let x = start;x<platform.length;x++) {
       if (platform[x][0] === 'black') {
         return x
       }
@@ -79,7 +79,7 @@ function generatePlatform(width) {
   let color = '';
   while (true) {
     color = randomChoice(['orange','red','green','blue','aqua'].filter(x => x !== color))
-    let firstX = getFirstBlackXLocation()
+    let firstX = getFirstBlackXLocation(0)
     let tetromino;
     let fits = false
     let remainingPieces = tetrominos.slice()
@@ -88,7 +88,7 @@ function generatePlatform(width) {
       remainingPieces = remainingPieces.filter(p => p !== tetromino)
       fits = canPieceFit(tetromino, firstX)
       if (!fits && remainingPieces.length == 0) {
-        firstX++
+        firstX = getFirstBlackXLocation(firstX+1)
         remainingPieces = tetrominos.slice()
       }
     } while (!fits && firstX < width)
