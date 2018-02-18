@@ -66,8 +66,8 @@ function generatePlatform(width) {
     }
   }
 
-  const getFirstBlackXLocation = (start=0) => {
-    for (let x = start;x<platform.length;x++) {
+  const getFirstBlackXLocation = () => {
+    for (let x = 0;x<platform.length;x++) {
       if (platform[x][0] === 'black') {
         return x
       }
@@ -88,7 +88,7 @@ function generatePlatform(width) {
       remainingPieces = remainingPieces.filter(p => p !== tetromino)
       fits = canPieceFit(tetromino, firstX)
       if (!fits && remainingPieces.length == 0) {
-        firstX = getFirstBlackXLocation(firstX+1)
+        firstX++
         remainingPieces = tetrominos.slice()
       }
     } while (!fits && firstX < width)
