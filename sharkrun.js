@@ -69,6 +69,7 @@ const minDistanceBetweenPlatforms = sharkWidth
 const minSharkVSpeed = -300
 const maxSharkVSpeed = 300
 const deathHeight = -200
+const tetrisPieceSize = 15
 
 const canvas = document.getElementById('game')
 const context = canvas.getContext('2d')
@@ -91,6 +92,7 @@ let Game = function() {
       width: 2000,
       color: 'white',
       hasStim: true,
+      tetrominos: generatePlatform(Math.floor(2000/tetrisPieceSize)),
       stimSprite: sprites['ice2']
     }]
     jumpCount = 0
@@ -164,12 +166,15 @@ let Game = function() {
       lastPosY = screenHeight - (maxDistanceToTopOfScreen+maxHeightAbovePreviousPlatform)
     }
     if (rightMost - sharkHPos < screenWidth * 2) {
+      let width = Math.random() * (maximumPlatformWidth - minimumPlatformWidth) + minimumPlatformWidth
+      width = Math.floor(width/tetrisPieceSize)*tetrisPieceSize
       world.push({
         posX: rightMost + Math.random()*maxDistanceBetweenPlatforms + minDistanceBetweenPlatforms,
-        posY: Math.random() * (lastPosY+maxHeightAbovePreviousPlatform) + platformHeight,
-        width: Math.random() * (maximumPlatformWidth - minimumPlatformWidth) + minimumPlatformWidth,
+        posY: Math.floor(Math.random() * (lastPosY+maxHeightAbovePreviousPlatform) + platformHeight),
+        width,
         color: randomChoice(['white', 'yellow', 'purple', 'red']),
         hasStim: Math.random() > (1 - chanceOfStim),
+        tetrominos: generatePlatform(width/tetrisPieceSize),
         stimSprite: sprites['ice'+Math.floor(Math.random() * 6)]
       })
     }
@@ -296,10 +301,19 @@ let Game = function() {
       const x = Math.floor((-sharkHPos*0.5 % sprites['bg'].width) + sprites['bg'].width*i)
       context.drawImage(sprites['bg'], x, 0)
     }
-    world.forEach(platform => {
-      screenX = platform.posX - sharkHPos + sharkWidth
-      context.fillStyle = platform.color
-      context.fillRect(screenX, screenHeight-platform.posY, platform.width, 20)
+    world.forEach((platform,i) => {
+      const screenX = Math.floor(platform.posX - sharkHPos + sharkWidth)
+      for(let x=0;x<platform.tetrominos.length;x++) {
+        for(let y=0;y<platform.tetrominos[x].length;y++) {
+          const color = platform.tetrominos[x][y]
+          if (color === 'black') continue
+          context.fillStyle = color
+          //context.strokeStyle = 'black'
+          //context.lineWidth = 1
+          context.fillRect(screenX+x*tetrisPieceSize, screenHeight-platform.posY+y*tetrisPieceSize, tetrisPieceSize, tetrisPieceSize)
+          //context.strokeRect(screenX+x*tetrisPieceSize, screenHeight-platform.posY+y*tetrisPieceSize, tetrisPieceSize, tetrisPieceSize)
+        }
+      }
       if (platform.hasStim) {
         const sprite = platform.stimSprite
         context.drawImage(sprite, screenX + platform.width / 2 - sprite.width/2, screenHeight-platform.posY-sprite.height)
