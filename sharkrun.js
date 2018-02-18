@@ -31,6 +31,19 @@ function loadSprites(spriteList, callback) {
   })
 }
 
+const GAMESTATE = Object.freeze({
+  prestart: Symbol(),
+  start:    Symbol(),
+  playing:  Symbol(),
+  end:      Symbol(),
+})
+
+const ACTION = Object.freeze({
+  none: Symbol(),
+  jump: Symbol(),
+  dash: Symbol()
+})
+
 const screenWidth = 1000
 const screenHeight = 600
 const sharkHeight = 113
@@ -39,7 +52,7 @@ const sharkStartSpeed = 15
 const speedIncrementor = 0.2
 const landingGrace = 20 //extra width for sharky's front to land on things
 const jumpSpeed = 12
-const defaultGravity = 50
+const gravity = 50
 const maxHeightAbovePreviousPlatform = 200
 const minimumPlatformWidth = 100
 const maximumPlatformWidth = 800
@@ -47,28 +60,29 @@ const sharkLeftPosition = 100
 const dashSpeedIncrease = 5
 const maxStimCount = 10
 const startingStims = 3
-//const stimRadius = 15
 const platformHeight = 20
 const maxDashTime = 0.3
 const maxDistanceToTopOfScreen = 200
 const chanceOfStim = 0.1
 const maxDistanceBetweenPlatforms = 500
 const minDistanceBetweenPlatforms = sharkWidth
+const minSharkVSpeed = -300
+const maxSharkVSpeed = 300
+const deathHeight = -200
 
 const canvas = document.getElementById('game')
 const context = canvas.getContext('2d')
 context.imageSmoothingQuality = 'low'
 
 let Game = function() {
-  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,gravity,score,stimCount,world,jumpCount,dashTime,jumpTime,jumping,newRecord,bestScore,cooldown=0
+  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,score,stimCount,world,jumpCount,dashTime,jumpTime,jumping,newRecord,bestScore,cooldown=0
   let lastScene=null
 
-  this.init = function() {
+  this.init = () => {
     sharkVPos = screenHeight/2
     sharkHPos = 0
     sharkVSpeed = 0
     sharkHSpeed = sharkStartSpeed
-    gravity = defaultGravity
     score = 0
     stimCount = startingStims
     world = [{
@@ -92,8 +106,8 @@ let Game = function() {
 
   this.init()
 
-  this.jump = function() {
-    if (jumpCount >= 2 || this.dashTime > 0) {
+  this.jump = () => {
+    if (jumpCount >= 2) {
       return
     }
     sharkVSpeed = jumpSpeed
@@ -102,19 +116,20 @@ let Game = function() {
     jumpCount++
   }
 
-  this.dash = function() {
+  this.dash = () => {
     if (stimCount <= 0 || dashTime > 0) {
       return
     }
     jumpCount = 0
+    jumping = false
     sharkHSpeed += dashSpeedIncrease
     sharkVSpeed = 0 // shark stops moving up or down when dashing
-    gravity = 0
     dashTime = maxDashTime
     stimCount--
   }
 
-  this.gameState = gameOptions.fullScreen ? 'prestart' : 'start'  //adds an extra touch before starting the game, so it goes full screen on first touch
+  //adds an extra touch before starting the game, so it goes full screen on first touch
+  this.gameState = gameOptions.fullScreen ? GAMESTATE.prestart : GAMESTATE.start  
 
   this.generateWorld = function() {
     let rightMost = sharkHPos
@@ -143,40 +158,43 @@ let Game = function() {
     }
   }
 
-  this.dead = function() {
+  this.dead = () => {
     try {
       lastScene = context.getImageData(0,0,screenWidth,screenHeight)
     } catch (e) {}
-    this.gameState = 'end'
-    bestScore = window.localStorage.getItem('best-score')
-    if (score > bestScore) {
+    this.gameState = GAMESTATE.end
+    if (score > window.localStorage.getItem('best-score')) {
       window.localStorage.setItem('best-score', score)
     }
     cooldown = 1
   }
 
-  this.update = function(dt) {
-    if (this.gameState != 'playing') {
+  this.update = (dt) => {
+    if (this.gameState != GAMESTATE.playing) {
       cooldown -= dt
       return
     }
     const prevSharkVPos = sharkVPos
     score += Math.floor(dt * 100)
+
+    sharkVSpeed -= dt * gravity
+
     if (dashTime > 0) {
       dashTime -= dt
       if (dashTime <= 0) {
         dashTime = 0
-        gravity = defaultGravity
         sharkHSpeed -= dashSpeedIncrease
       }
+      sharkVSpeed = 0
     }
-    sharkVSpeed -= dt * gravity
+    
+    sharkVSpeed = clamp(sharkVSpeed, minSharkVSpeed, maxSharkVSpeed)
     sharkVPos += sharkVSpeed
-    if (sharkVPos < -200) {
+    if (sharkVPos < deathHeight) {
       this.dead()
       return
     }
-    if (jumping) {
+    if (jumping && dashTime <= 0) {
       jumpTime+=dt
       if (jumpTime < 0.3) {
         sharkVSpeed = jumpSpeed
@@ -187,82 +205,85 @@ let Game = function() {
     this.generateWorld()
 
     world.forEach(platform => {
-      //shark is within the platform
-      //only handle platform collisions if we are moving down:
-      if (sharkVSpeed < 0 && prevSharkVPos >= platform.posY) {
-        if (sharkHPos+sharkWidth+landingGrace > platform.posX && sharkHPos < platform.posX+platform.width) {
-          if (sharkVPos < platform.posY) {
-            sharkVPos = platform.posY
-            jumpCount = 0
-            sharkVSpeed = 0
-          }
-        }
+      // shark is within the platform
+      // only handle platform collisions if we are moving down:
+      if (
+        sharkVSpeed < 0 && 
+        prevSharkVPos >= platform.posY &&
+        sharkHPos+sharkWidth+landingGrace > platform.posX &&
+        sharkHPos < platform.posX+platform.width &&
+        sharkVPos < platform.posY
+      ) {
+        sharkVPos = platform.posY
+        jumpCount = 0
+        sharkVSpeed = 0
       }
+
       if (platform.hasStim) {
-        const sprite = platform.stimSprite
-        stimX = platform.posX + platform.width/2 - sprite.width/2
+        stimX = platform.posX + platform.width/2 - platform.stimSprite.width/2
         stimY = platform.posY
         if (
           sharkHPos+sharkWidth > stimX &&
-          sharkHPos < stimX+sprite.width &&
-          sharkVPos < stimY + sprite.height &&
-          sharkVPos+sharkHeight >= stimY &&
-          stimCount < maxStimCount
+          sharkHPos < stimX + platform.stimSprite.width &&
+          sharkVPos < stimY + platform.stimSprite.height &&
+          sharkVPos+sharkHeight >= stimY
         ) {
           platform.hasStim = false
-          stimCount++
-          score += 100
+          if (stimCount < maxStimCount) {
+            stimCount++
+            score += 100
+          } else {
+            score += 500
+          }
         }
       }
     })
-  
   }
 
-  this.render = function() {
-    if (this.gameState == 'start' || this.gameState == 'prestart') {
-      context.drawImage(sprites['start'], 0, 0)
-      context.font = "30px Arial"
-      context.fillStyle = 'yellow'
-      context.textAlign="left"
-      
-      if (gameOptions.showTouchControls) {
-        context.fillText('Touch right side - jump',50,300)
-        context.fillText('Touch left side - use crystal',50,350)
-        context.fillText('Touch to begin',50,450)
-      } else {
-        context.fillText('Z - jump',50,300)
-        context.fillText('X - use crystal',50,350)
-        context.fillText('Press Z or X to start',50,450)
-      }
-      return
+  const renderStartScreen = () => {
+    context.drawImage(sprites['start'], 0, 0)
+    context.font = "30px Arial"
+    context.fillStyle = 'yellow'
+    context.textAlign="left"
+    if (gameOptions.showTouchControls) {
+      context.fillText('Touch right side - jump',50,300)
+      context.fillText('Touch left side - use crystal',50,350)
+      context.fillText('Touch to begin',50,450)
+    } else {
+      context.fillText('Z - jump',50,300)
+      context.fillText('X - use crystal',50,350)
+      context.fillText('Press Z or X to start',50,450)
     }
-    if (this.gameState == 'end') {
-      if (lastScene !== null) {
-        context.putImageData(lastScene, 0,0)
-        const alpha = clamp(1-cooldown, 0, 0.9)
-        context.fillStyle = 'rgba(0,0,0,' + alpha + ')'
-        context.fillRect(0, 0, screenWidth, screenHeight)
-      } else {
-        context.clearRect(0,0,screenWidth,screenHeight)
-      }
-      context.font = "80px Arial"
-      context.fillStyle = 'white'
-      context.textAlign="center"
-      context.fillText('GAME OVER', screenWidth/2,150)
-      context.font = "60px Arial"
-      context.fillText('YOU SCORED', screenWidth/2,250)
-      context.font = "80px Arial"
-      context.fillStyle = 'yellow'
-      context.fillText(score, screenWidth/2,350)
-      context.font = "60px Arial"
-      context.fillStyle = 'white'
-      if (score >= bestScore) {
-        context.fillText('NEW PERSONAL BEST!!', screenWidth/2,500)
-      } else {
-        context.fillText('PREVIOUS BEST: '+ bestScore, screenWidth/2,500)
-      }
-      return
+  }
+
+  const renderGameOverScreen = () => {
+    if (lastScene !== null) {
+      context.putImageData(lastScene, 0,0)
+      const alpha = clamp(1-cooldown, 0, 0.9)
+      context.fillStyle = 'rgba(0,0,0,' + alpha + ')'
+      context.fillRect(0, 0, screenWidth, screenHeight)
+    } else {
+      context.clearRect(0,0,screenWidth,screenHeight)
     }
+    context.font = "80px Arial"
+    context.fillStyle = 'white'
+    context.textAlign="center"
+    context.fillText('GAME OVER', screenWidth/2,150)
+    context.font = "60px Arial"
+    context.fillText('YOU SCORED', screenWidth/2,250)
+    context.font = "80px Arial"
+    context.fillStyle = 'yellow'
+    context.fillText(score, screenWidth/2,350)
+    context.font = "60px Arial"
+    context.fillStyle = 'white'
+    if (score >= bestScore) {
+      context.fillText('NEW PERSONAL BEST!!', screenWidth/2,500)
+    } else {
+      context.fillText('PREVIOUS BEST: '+ bestScore, screenWidth/2,500)
+    }
+  }
+
+  const renderGame = () => {
     for (let i=0; i<2; i++) {
       const x = Math.floor((-sharkHPos*0.5 % sprites['bg'].width) + sprites['bg'].width*i)
       context.drawImage(sprites['bg'], x, 0)
@@ -296,29 +317,45 @@ let Game = function() {
     context.fillText('BEST: '+bestScore, screenWidth-10,20) 
   }
 
-  this.action = function(action) {
-    if ((this.gameState == 'prestart' || this.gameState == 'end') && cooldown <= 0) {
-      this.init()
-      this.gameState = 'start'
-      return
-    }
-
-    if (action !== '' && this.gameState == 'start') {
-      this.gameState = 'playing'
-      return
-    }
-
-    if (action == 'jump') { //z
-      this.jump()
-      return
-    }
-    if (action == 'dash') { //x
-      this.dash()
-      return
+  this.render = function() {
+    switch (this.gameState) {
+      case GAMESTATE.prestart:
+      case GAMESTATE.start:
+        renderStartScreen()
+        return
+      case GAMESTATE.end:
+        renderGameOverScreen()
+        return
+      case GAMESTATE.playing:
+        renderGame()
+        return
     }
   }
+
+  this.action = function(action) {
+    switch (this.gameState) {
+      case GAMESTATE.prestart:
+      case GAMESTATE.end:
+        if (cooldown <= 0) {
+          this.init()
+          this.gameState = GAMESTATE.start
+        }
+        break
+      case GAMESTATE.start:
+        this.gameState = GAMESTATE.playing
+        break
+      case GAMESTATE.playing:    
+        if (action == ACTION.jump) { //z
+          this.jump()
+        } else if (action == ACTION.dash) { //x
+          this.dash()
+        }
+        break
+    }
+  }
+  
   this.endAction = function(action) {
-    if (action == 'jump') { //z
+    if (action == ACTION.jump) { //z
       jumping = false
     }
   }
@@ -343,22 +380,22 @@ function startGame() {
 
   window.addEventListener('keydown', function(event) {
     if (event.repeat) return
-    let action = ''
+    let action = ACTION.none
     if (event.keyCode == 90) { //z
-      action = 'jump'
+      action = ACTION.jump
     }
     if (event.keyCode == 88) { //x
-      action = 'dash'
+      action = ACTION.dash
     }
     game.action(action)
     return false
   })
 
   window.addEventListener('keyup', function(event) {
-    game.endAction(event.keyCode == 90 ? 'jump' : '')
+    game.endAction(event.keyCode == 90 ? ACTION.jump : ACTION.none)
   })
 
-  const actionFromCanvasLocation = (x, y) => x < canvas.clientWidth / 2 ? 'dash' : 'jump'
+  const actionFromCanvasLocation = (x, y) => x < canvas.clientWidth / 2 ? ACTION.dash : ACTION.jump
 
   canvas.addEventListener('touchstart', function(event) {
     for(let i=0;i<event.changedTouches.length;i++) {
@@ -397,6 +434,4 @@ loadSprites({
   'ice4': 'crystals/ice_5.png',
   'ice5': 'crystals/ice_6.png',
   'iceSymbol': 'crystals/symbol.png'
-}, () => {
-  startGame()
-});
+}, startGame);
