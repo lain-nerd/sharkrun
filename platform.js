@@ -2,7 +2,12 @@ function randomChoice(arr) {
   return arr[Math.floor(arr.length * Math.random())]
 }
 
+let generatedPlatforms = []
+
 function generatePlatform(width) {
+  if (generatedPlatforms[width] && generatedPlatforms[width].length >= 2) {
+    return randomChoice(generatedPlatforms[width])
+  }
   const tetrominos = [
     //I
     [[true,true,true,true]],
@@ -66,20 +71,20 @@ function generatePlatform(width) {
     }
   }
 
-  const getFirstBlackXLocation = () => {
-    for (let x = 0;x<platform.length;x++) {
-      if (platform[x][0] === 'black') {
+  const getFirstPotentialLocation = () => {
+    for (let x = width-1;x>=0;x--) {
+      if (platform[x][0] !== 'black') {
         return x
       }
     }
-    return false
+    return 0
   }
   
   let finished = false
   let color = '';
   while (true) {
     color = randomChoice(['orange','red','green','blue','aqua'].filter(x => x !== color))
-    let firstX = getFirstBlackXLocation(0)
+    let firstX = getFirstPotentialLocation()
     let tetromino;
     let fits = false
     let remainingPieces = tetrominos.slice()
@@ -95,7 +100,13 @@ function generatePlatform(width) {
     if (fits) {
       fillPieceIn(tetromino, firstX, color)
     } else {
-      return platform
+      break
     }
   }
+  if (!generatedPlatforms[width]) {
+    generatedPlatforms[width] = []
+  }
+
+  generatedPlatforms[width].push(platform)
+  return platform
 }
