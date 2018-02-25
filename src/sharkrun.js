@@ -44,6 +44,7 @@ const ACTION = {
   dash: Symbol()
 }
 
+
 const screenWidth = 1000
 const screenHeight = 600
 const sharkHeight = 113
@@ -58,13 +59,13 @@ const minimumPlatformWidth = 100
 const maximumPlatformWidth = 800
 const sharkLeftPosition = 100
 const dashSpeedIncrease = 5
-const maxStimCount = 5
-const stimsInSymbolImage = 10 //This is how many stims are in symbol.png, maxStimCount cannot go more than this without modifying the image
-const startingStims = 0
+const maxCrystalCount = 5
+const crystalsInSymbolImage = 10 //This is how many crystals are in symbol.png, maxCrystalCount cannot go more than this without modifying the image
+const startingCrystals = 0
 const platformHeight = 20
 const maxDashTime = 0.3
 const maxDistanceToTopOfScreen = 200
-const chanceOfStim = 0.1
+const chanceOfCrystal = 0.1
 const maxDistanceBetweenPlatforms = 500
 const minDistanceBetweenPlatforms = sharkWidth
 const minSharkVSpeed = -300
@@ -73,6 +74,13 @@ const deathHeight = -200
 const tetrisPieceSize = 25
 const crystalSymbolWidth = 35
 const localStorageBestScoreName = 'sharkrun-bestScore-1'
+
+const tips = [
+  'Hold jump down to jump higher and further',
+  'Double jump at the top of your jump to maximise air-time',
+  'Crystals reset your double-jump. Use a crystal just before you die to give yourself another chance!',
+  'Collecting a crystal gives you 100 points. Or a massive 500 points if you\'re already holding '+maxCrystalCount+'!'
+]
 
 for (let genPlatWidth=(minimumPlatformWidth/tetrisPieceSize);genPlatWidth<=(maximumPlatformWidth/tetrisPieceSize);genPlatWidth+=1) {
   for (let z=0;z<6;z++) 
@@ -84,7 +92,7 @@ const context = canvas.getContext('2d')
 context.imageSmoothingQuality = 'low'
 
 let Game = function() {
-  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,score,stimCount,world,scoreDisplayers,jumpCount,dashTime,jumpTime,jumping,newRecord,bestScore,cooldown=0
+  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,score,crystalCount,world,scoreDisplayers,jumpCount,dashTime,jumpTime,jumping,newRecord,bestScore,tip,cooldown=0
   let lastScene=null
 
   const init = () => {
@@ -93,15 +101,15 @@ let Game = function() {
     sharkVSpeed = 0
     sharkHSpeed = sharkStartSpeed
     score = 0
-    stimCount = startingStims
+    crystalCount = startingCrystals
     world = [{
       posX: -50,
       posY: 100,
       width: 2000,
       color: 'white',
-      hasStim: true,
+      hasCrystal: true,
       tetrominos: generatePlatform(Math.floor(2000/tetrisPieceSize)),
-      stimSprite: sprites['ice2']
+      crystalSprite: sprites['ice2']
     }]
     scoreDisplayers = []
     jumpCount = 0
@@ -113,6 +121,7 @@ let Game = function() {
       bestScore = 0
     }
     newRecord=false
+    tip = randomChoice(tips)
   }
 
   init()
@@ -137,14 +146,14 @@ let Game = function() {
   }
 
   const dash = () => {
-    if (stimCount <= 0 || dashTime > 0) return
+    if (crystalCount <= 0 || dashTime > 0) return
 
     jumpCount = 0
     jumping = false
     sharkHSpeed += dashSpeedIncrease
     sharkVSpeed = 0 // shark stops moving up or down when dashing
     dashTime = maxDashTime
-    stimCount--
+    crystalCount--
   }
 
   const updateDashing = (dt) => {
@@ -177,18 +186,20 @@ let Game = function() {
     if (rightMost - sharkHPos < screenWidth * 2) {
       let width = Math.random() * (maximumPlatformWidth - minimumPlatformWidth) + minimumPlatformWidth
       width = Math.floor(width/tetrisPieceSize)*tetrisPieceSize
-      const hasStim = Math.random() > (1 - chanceOfStim)
+      const hasCrystal = Math.random() > (1 - chanceOfCrystal)
       world.push({
         posX: rightMost + Math.random()*maxDistanceBetweenPlatforms + minDistanceBetweenPlatforms,
         posY: Math.floor(Math.random() * (lastPosY+maxHeightAbovePreviousPlatform) + platformHeight),
         width,
         color: randomChoice(['white', 'yellow', 'purple', 'red']),
-        hasStim,
+        hasCrystal,
         tetrominos: generatePlatform(width/tetrisPieceSize),
-        stimSprite: hasStim ? sprites['ice'+Math.floor(Math.random() * 6)] : ''
+        crystalSprite: hasCrystal ? sprites['ice'+Math.floor(Math.random() * 6)] : ''
       })
     }
   }
+
+
 
   const dead = () => {
     try {
@@ -227,18 +238,18 @@ let Game = function() {
       sharkVSpeed = 0
     }
 
-    if (platform.hasStim) {
-      stimX = platform.posX + platform.width/2 - platform.stimSprite.width/2
-      stimY = platform.posY
+    if (platform.hasCrystal) {
+      crystalX = platform.posX + platform.width/2 - platform.crystalSprite.width/2
+      crystalY = platform.posY
       if (
-        sharkHPos+sharkWidth > stimX &&
-        sharkHPos < stimX + platform.stimSprite.width &&
-        sharkVPos < stimY + platform.stimSprite.height &&
-        sharkVPos+sharkHeight >= stimY
+        sharkHPos+sharkWidth > crystalX &&
+        sharkHPos < crystalX + platform.crystalSprite.width &&
+        sharkVPos < crystalY + platform.crystalSprite.height &&
+        sharkVPos+sharkHeight >= crystalY
       ) {
-        platform.hasStim = false
-        if (stimCount < maxStimCount) {
-          stimCount++
+        platform.hasCrystal = false
+        if (crystalCount < maxCrystalCount) {
+          crystalCount++
           addScore(100)
         } else {
           addScore(500)
@@ -332,6 +343,10 @@ let Game = function() {
     } else {
       context.fillText('PREVIOUS BEST: '+ bestScore, screenWidth/2,500)
     }
+    
+    context.font = "20px Arial"
+    context.fillStyle = 'yellow'
+    context.fillText(tip, screenWidth/2,550)
   }
 
   const drawBackground = () => {
@@ -354,8 +369,8 @@ let Game = function() {
     
     context.fillStyle = 'white'
     context.fillRect(screenX, screenHeight-platform.posY-3, platform.width, 3)
-    if (platform.hasStim) {
-      const sprite = platform.stimSprite
+    if (platform.hasCrystal) {
+      const sprite = platform.crystalSprite
       context.drawImage(sprite, screenX + platform.width / 2 - sprite.width/2, screenHeight-platform.posY-sprite.height)
     }
   }
@@ -378,7 +393,7 @@ let Game = function() {
   }
 
   const drawCrystalCount = () => {
-    context.drawImage(sprites['iceSymbol'], (stimsInSymbolImage - maxStimCount) * crystalSymbolWidth, 0, crystalSymbolWidth*stimCount, crystalSymbolWidth, 5, 40, crystalSymbolWidth*stimCount, crystalSymbolWidth)
+    context.drawImage(sprites['iceSymbol'], (crystalsInSymbolImage - maxCrystalCount) * crystalSymbolWidth, 0, crystalSymbolWidth*crystalCount, crystalSymbolWidth, 5, 40, crystalSymbolWidth*crystalCount, crystalSymbolWidth)
   }
 
   const drawInGameBestScore = () => {
