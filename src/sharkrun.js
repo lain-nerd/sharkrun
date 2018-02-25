@@ -168,18 +168,18 @@ let Game = function() {
   // adds an extra touch before starting the game, so it goes full screen on first touch
   this.gameState = gameOptions.goFullScreen ? GAMESTATE.prestart : GAMESTATE.start  
 
-  generateWorld = function() {
+  const generateWorld = () => {
     let rightMost = sharkHPos
     let lastPosY = 0
-    world.forEach((platform, index) => {
-      if (platform.posX + platform.width+sharkLeftPosition < sharkHPos) {
-        world.splice(index, 1)
+    if (world[0].posX + world[0].width+sharkLeftPosition < sharkHPos) {
+      world.splice(0, 1)
+    }
+    for (let i=0; i<world.length; i++) {
+      if (rightMost < world[i].posX + world[i].width) {
+        rightMost = world[i].posX + world[i].width
       }
-      if (rightMost < platform.posX + platform.width) {
-        rightMost = platform.posX + platform.width
-      }
-      lastPosY = platform.posY
-    })
+      lastPosY = world[i].posY
+    }
     if (lastPosY > screenHeight - (maxDistanceToTopOfScreen+maxHeightAbovePreviousPlatform)) {
       lastPosY = screenHeight - (maxDistanceToTopOfScreen+maxHeightAbovePreviousPlatform)
     }
@@ -296,9 +296,10 @@ let Game = function() {
     sharkHSpeed += speedIncrementor * dt
     generateWorld()
 
-    world.forEach(platform => {
-      handleWorldCollision(prevSharkVPos, platform)
-    })
+    for(let i=0; i<world.length; i++) {
+      handleWorldCollision(prevSharkVPos, world[i])
+    }
+    
     updateScoreDisplayers(dt)
   }
 

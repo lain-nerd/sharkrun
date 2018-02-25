@@ -17,30 +17,30 @@ function generatePlatform(width) {
     [[true,true],[true,true]],
     
     //L
-    [[true,true,true],[true,false,false]],
+    [[true,true,true],[true]],
     [[true,true],[false,true],[false,true]],
     [[false,false,true],[true,true,true]],
-    [[true,false],[true,false],[true,true]],
+    [[true],[true],[true,true]],
 
     //J
     [[true,true,true],[false,false,true]],
     [[false,true],[false,true],[true,true]],
-    [[true,false,false],[true,true,true]],
-    [[true,true],[true,false],[true,false]],
+    [[true],[true,true,true]],
+    [[true,true],[true],[true]],
 
     //T
-    [[true,true,true],[false,true,false]],
+    [[true,true,true],[false,true]],
     [[false,true],[true,true],[false,true]],
-    [[false,true,false],[true,true,true]],
-    [[true,false],[true,true],[true,false]],
+    [[false,true],[true,true,true]],
+    [[true],[true,true],[true,false]],
     
     //S
-    [[true,true,false],[false,true,true]],
-    [[false,true],[true,true],[true, false]],
+    [[true,true],[false,true,true]],
+    [[false,true],[true,true],[true,]],
 
     //Z
-    [[false,true,true],[true,true,false]],
-    [[true,false],[true,true],[false,true]],
+    [[false,true,true],[true,true]],
+    [[true],[true,true],[false,true]],
     
   ]
 
