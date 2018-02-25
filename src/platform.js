@@ -2,10 +2,10 @@ function randomChoice(arr) {
   return arr[Math.floor(arr.length * Math.random())]
 }
 
-let generatedPlatforms = []
+let generatedPlatforms = {}
 
 function generatePlatform(width) {
-  if (generatedPlatforms[width] && generatedPlatforms[width].length >= 2) {
+  if (generatedPlatforms[width] && generatedPlatforms[width].length >= 5) {
     return randomChoice(generatedPlatforms[width])
   }
   const tetrominos = [

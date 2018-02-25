@@ -74,6 +74,11 @@ const tetrisPieceSize = 25
 const crystalSymbolWidth = 35
 const localStorageBestScoreName = 'sharkrun-bestScore-1'
 
+for (let genPlatWidth=(minimumPlatformWidth/tetrisPieceSize);genPlatWidth<=(maximumPlatformWidth/tetrisPieceSize);genPlatWidth+=1) {
+  for (let z=0;z<6;z++) 
+   generatePlatform(genPlatWidth)
+}
+
 const canvas = document.getElementById('game')
 const context = canvas.getContext('2d')
 context.imageSmoothingQuality = 'low'
