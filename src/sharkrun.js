@@ -436,7 +436,7 @@ function startGame() {
     return false
   })
 
-  if (gameOptions.fullScreen) {
+  if (gameOptions.goFullScreen) {
     canvas.addEventListener('click', function makeFS(event) {
       if (screenfull.enabled)
         screenfull.request(document.getElementById('gameArea'))
@@ -447,14 +447,14 @@ function startGame() {
 
 
 loadSprites({
-  'shark': './sharkynobg.png',
-  'bg': './background.jpg',
-  'start': './start.png',
-  'ice0': 'crystals/ice_1.png',
-  'ice1': 'crystals/ice_2.png',
-  'ice2': 'crystals/ice_3.png',
-  'ice3': 'crystals/ice_4.png',
-  'ice4': 'crystals/ice_5.png',
-  'ice5': 'crystals/ice_6.png',
-  'iceSymbol': 'crystals/symbol.png'
+  'shark': './images/sharkynobg.png',
+  'bg': './images/background.jpg',
+  'start': './images/start.png',
+  'ice0': './images/ice_1.png',
+  'ice1': './images/ice_2.png',
+  'ice2': './images/ice_3.png',
+  'ice3': './images/ice_4.png',
+  'ice4': './images/ice_5.png',
+  'ice5': './images/ice_6.png',
+  'iceSymbol': './images/symbol.png'
 }, startGame);

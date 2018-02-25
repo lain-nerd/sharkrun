@@ -5,8 +5,8 @@
     <title>SharkRun</title>
     <link href="styles.css" rel="stylesheet" type="text/css" />
     <link rel="shortcut icon" href="./icon.png">
-    <script type="text/javascript" src="screenfull.js"></script>
-    <script type="text/javascript" src="platform.js"></script>
+    <script type="text/javascript" src="lib/screenfull.js"></script>
+    <script type="text/javascript" src="src/platform.js"></script>
   </head>
   <body>
     <div id='gameArea'>
@@ -16,9 +16,9 @@
   <script type="text/javascript">
     const supportsTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints;
     const gameOptions = {
-      fullScreen: supportsTouch,
+      goFullScreen: supportsTouch,
       showTouchControls: supportsTouch
     }
   </script>
-  <script type="text/javascript" src="sharkrun.js"></script>
+  <script type="text/javascript" src="src/sharkrun.js"></script>
 </html>

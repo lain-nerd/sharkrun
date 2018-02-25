@@ -4,9 +4,9 @@
     <link rel="manifest" href="manifest.json" />
     <title>SharkRun</title>
     <link href="styles.css" rel="stylesheet" type="text/css" />
-    <link rel="shortcut icon" href="./icon.png">
-    <script type="text/javascript" src="screenfull.js"></script>
-    <script type="text/javascript" src="platform.js"></script>
+    <link rel="shortcut icon" href="./images/icon.png">
+    <script type="text/javascript" src="lib/screenfull.js"></script>
+    <script type="text/javascript" src="src/platform.js"></script>
   </head>
   <body>
     <div id='gameArea'>
@@ -16,9 +16,9 @@
   <script type="text/javascript">
     const supportsTouch = 'ontouchstart' in window || navigator.msMaxTouchPoints;
     const gameOptions = {
-      fullscreen: false,
-      showTouchControls: supportsTouch
+      goFullScreen: false,  //standalone is full screen so don't go full screen on first touch
+      showTouchControls: supportsTouch //should probably be true, but maybe there's some weird way to install web app on desktop :)
     }
   </script>
-  <script type="text/javascript" src="sharkrun.js"></script>
+  <script type="text/javascript" src="src/sharkrun.js"></script>
 </html>
