@@ -53,8 +53,19 @@ function generatePlatform(width) {
   const canPieceFit = (piece, xLocation) => {
     for(let x=0; x<piece.length; x++) {
       for(let y=0; y<piece[x].length; y++) {
-        if (!piece[x][y]) continue;
-        if (platform[x+xLocation] === undefined || platform[x+xLocation][y] !== 'black') {
+        //If we intersect non-platform, can't work:
+        if (platform[x+xLocation] === undefined) {
+          return false
+        }
+        if (!piece[x][y]) {
+          // If we're checking the top of the piece, then make sure the platform is already filled at this location:
+          if (y===0 && platform[x+xLocation][y] === 'black') {
+            return false
+          }
+          continue
+        }
+        // We get here if the piece is filled in this location, so check that the platform is empty:
+        if (platform[x+xLocation][y] !== 'black') {
           return false
         }
       }
@@ -74,7 +85,7 @@ function generatePlatform(width) {
   const getFirstPotentialLocation = () => {
     for (let x = width-1;x>=0;x--) {
       if (platform[x][0] !== 'black') {
-        return x
+        return x-1
       }
     }
     return 0
