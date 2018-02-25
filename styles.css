@@ -24,7 +24,11 @@ body, html {
 }
 
 @media only screen and (max-device-width: 1000px) {
-  #gameArea {
-    border: none;
+  *:not(#game) {
+    margin: 0  !important;
+  }
+  * {
+    border: 0  !important;
+    padding: 0  !important;
   }
 }
