@@ -31,18 +31,18 @@ function loadSprites(spriteList, callback) {
   })
 }
 
-const GAMESTATE = Object.freeze({
+const GAMESTATE = {
   prestart: Symbol(),
   start:    Symbol(),
   playing:  Symbol(),
   end:      Symbol(),
-})
+}
 
-const ACTION = Object.freeze({
+const ACTION = {
   none: Symbol(),
   jump: Symbol(),
   dash: Symbol()
-})
+}
 
 const screenWidth = 1000
 const screenHeight = 600
@@ -148,8 +148,8 @@ let Game = function() {
     sharkVSpeed = 0
   }
 
-  //adds an extra touch before starting the game, so it goes full screen on first touch
-  this.gameState = gameOptions.fullScreen ? GAMESTATE.prestart : GAMESTATE.start  
+  // adds an extra touch before starting the game, so it goes full screen on first touch
+  this.gameState = gameOptions.goFullScreen ? GAMESTATE.prestart : GAMESTATE.start  
 
   generateWorld = function() {
     let rightMost = sharkHPos
@@ -169,14 +169,15 @@ let Game = function() {
     if (rightMost - sharkHPos < screenWidth * 2) {
       let width = Math.random() * (maximumPlatformWidth - minimumPlatformWidth) + minimumPlatformWidth
       width = Math.floor(width/tetrisPieceSize)*tetrisPieceSize
+      const hasStim = Math.random() > (1 - chanceOfStim)
       world.push({
         posX: rightMost + Math.random()*maxDistanceBetweenPlatforms + minDistanceBetweenPlatforms,
         posY: Math.floor(Math.random() * (lastPosY+maxHeightAbovePreviousPlatform) + platformHeight),
         width,
         color: randomChoice(['white', 'yellow', 'purple', 'red']),
-        hasStim: Math.random() > (1 - chanceOfStim),
+        hasStim,
         tetrominos: generatePlatform(width/tetrisPieceSize),
-        stimSprite: sprites['ice'+Math.floor(Math.random() * 6)]
+        stimSprite: hasStim ? sprites['ice'+Math.floor(Math.random() * 6)] : ''
       })
     }
   }
@@ -297,47 +298,69 @@ let Game = function() {
     }
   }
 
-  const renderGame = () => {
+  const drawBackground = () => {
     for (let i=0; i<2; i++) {
       const x = Math.floor((-sharkHPos*0.5 % sprites['bg'].width) + sprites['bg'].width*i)
       context.drawImage(sprites['bg'], x, 0)
     }
-    world.forEach((platform,i) => {
-      const screenX = Math.floor(platform.posX - sharkHPos + sharkWidth)
-      for(let x=0;x<platform.tetrominos.length;x++) {
-        for(let y=0;y<platform.tetrominos[x].length;y++) {
-          const color = platform.tetrominos[x][y]
-          if (color === 'black') continue
-          context.fillStyle = color
-          //context.strokeStyle = 'black'
-          //context.lineWidth = 1
-          context.fillRect(screenX+x*tetrisPieceSize, screenHeight-platform.posY+y*tetrisPieceSize, tetrisPieceSize, tetrisPieceSize)
-          //context.strokeRect(screenX+x*tetrisPieceSize, screenHeight-platform.posY+y*tetrisPieceSize, tetrisPieceSize, tetrisPieceSize)
-        }
-      }
-      context.fillStyle = 'white'
-      context.fillRect(screenX, screenHeight-platform.posY-3, platform.width, 3)
-      if (platform.hasStim) {
-        const sprite = platform.stimSprite
-        context.drawImage(sprite, screenX + platform.width / 2 - sprite.width/2, screenHeight-platform.posY-sprite.height)
-      }
-    })
-    if (dashTime > 0) {
-      for (let i=0; i<100; i+=3) {
-        context.drawImage(sprites['shark'], i, screenHeight-sharkVPos-sharkHeight)
+  }
+
+  const drawPlatform = (platform) => {
+    const screenX = Math.floor(platform.posX - sharkHPos + sharkWidth)
+    for(let x=0;x<platform.tetrominos.length;x++) {
+      for(let y=0;y<platform.tetrominos[x].length;y++) {
+        const color = platform.tetrominos[x][y]
+        if (color === 'black') continue
+        context.fillStyle = color
+        context.fillRect(screenX+x*tetrisPieceSize, screenHeight-platform.posY+y*tetrisPieceSize, tetrisPieceSize, tetrisPieceSize)
       }
     }
+    
+    context.fillStyle = 'white'
+    context.fillRect(screenX, screenHeight-platform.posY-3, platform.width, 3)
+    if (platform.hasStim) {
+      const sprite = platform.stimSprite
+      context.drawImage(sprite, screenX + platform.width / 2 - sprite.width/2, screenHeight-platform.posY-sprite.height)
+    }
+  }
+
+  const drawDashTrail = () => {
+    for (let i=0; i<100; i+=3) {
+      context.drawImage(sprites['shark'], i, screenHeight-sharkVPos-sharkHeight)
+    }
+  }
+
+  const drawPlayerShark = () => {
     context.drawImage(sprites['shark'], 100, screenHeight-sharkVPos-sharkHeight)
+  }
+
+  const drawInGameScore = () => {
     context.font = "40px Arial"
     context.fillStyle = 'white'
     context.textAlign='start'
     context.fillText(score, 10, 35)
+  }
 
+  const drawCrystalCount = () => {
     context.drawImage(sprites['iceSymbol'], 0, 0, crystalSymbolWidth*stimCount, crystalSymbolWidth, 5, 40, crystalSymbolWidth*stimCount, crystalSymbolWidth)
+  }
 
+  const drawInGameBestScore = () => {
     context.font = "20px Arial"
     context.textAlign="end"
     context.fillText('BEST: '+bestScore, screenWidth-10,20) 
+  }
+
+  const renderGame = () => {
+    drawBackground()
+    world.forEach(drawPlatform)
+    if (dashTime > 0) {
+      drawDashTrail()
+    }
+    drawPlayerShark()
+    drawInGameScore()
+    drawCrystalCount()
+    drawInGameBestScore()
   }
 
   this.render = function() {
