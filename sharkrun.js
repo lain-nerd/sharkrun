@@ -70,6 +70,7 @@ const minSharkVSpeed = -300
 const maxSharkVSpeed = 300
 const deathHeight = -200
 const tetrisPieceSize = 25
+const crystalSymbolWidth = 35
 
 const canvas = document.getElementById('game')
 const context = canvas.getContext('2d')
@@ -332,9 +333,7 @@ let Game = function() {
     context.textAlign='start'
     context.fillText(score, 10, 35)
 
-    for (let i=0; i<stimCount; i++) {
-      context.drawImage(sprites['iceSymbol'], 10+35*i, 40)
-    }
+    context.drawImage(sprites['iceSymbol'], 0, 0, crystalSymbolWidth*stimCount, crystalSymbolWidth, 5, 40, crystalSymbolWidth*stimCount, crystalSymbolWidth)
 
     context.font = "20px Arial"
     context.textAlign="end"
