@@ -58,8 +58,9 @@ const minimumPlatformWidth = 100
 const maximumPlatformWidth = 800
 const sharkLeftPosition = 100
 const dashSpeedIncrease = 5
-const maxStimCount = 10
-const startingStims = 3
+const maxStimCount = 5
+const stimsInSymbolImage = 10 //This is how many stims are in symbol.png, maxStimCount cannot go more than this without modifying the image
+const startingStims = 0
 const platformHeight = 20
 const maxDashTime = 0.3
 const maxDistanceToTopOfScreen = 200
@@ -71,13 +72,14 @@ const maxSharkVSpeed = 300
 const deathHeight = -200
 const tetrisPieceSize = 25
 const crystalSymbolWidth = 35
+const localStorageBestScoreName = 'sharkrun-bestScore-1'
 
 const canvas = document.getElementById('game')
 const context = canvas.getContext('2d')
 context.imageSmoothingQuality = 'low'
 
 let Game = function() {
-  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,score,stimCount,world,jumpCount,dashTime,jumpTime,jumping,newRecord,bestScore,cooldown=0
+  let sharkVPos,sharkHPos,sharkVSpeed,sharkHSpeed,score,stimCount,world,scoreDisplayers,jumpCount,dashTime,jumpTime,jumping,newRecord,bestScore,cooldown=0
   let lastScene=null
 
   const init = () => {
@@ -96,11 +98,12 @@ let Game = function() {
       tetrominos: generatePlatform(Math.floor(2000/tetrisPieceSize)),
       stimSprite: sprites['ice2']
     }]
+    scoreDisplayers = []
     jumpCount = 0
     dashTime = 0
     jumpTime = 0
     jumping = false
-    bestScore = window.localStorage.getItem('best-score')
+    bestScore = window.localStorage.getItem(localStorageBestScoreName)
     if (bestScore === null) {
       bestScore = 0
     }
@@ -187,10 +190,68 @@ let Game = function() {
       lastScene = context.getImageData(0,0,screenWidth,screenHeight)
     } catch (e) {}
     this.gameState = GAMESTATE.end
-    if (score > window.localStorage.getItem('best-score')) {
-      window.localStorage.setItem('best-score', score)
+    if (score > window.localStorage.getItem(localStorageBestScoreName)) {
+      window.localStorage.setItem(localStorageBestScoreName, score)
     }
     cooldown = 1
+  }
+
+  const addScore = s => {
+    score += s
+    scoreDisplayers.push({
+      score: s,
+      fontSize: ""+Math.floor(10 + Math.sqrt(s*2)),
+      cycle: 0,
+      posX: sharkLeftPosition + 100,
+      posY: sharkVPos + 100
+    })
+  }
+
+  const handleWorldCollision = (prevSharkVPos, platform) => {
+    // shark is within the platform
+    // only handle platform collisions if we are moving down:
+    if (
+      sharkVSpeed < 0 && 
+      prevSharkVPos >= platform.posY &&
+      sharkHPos+sharkWidth+landingGrace > platform.posX &&
+      sharkHPos < platform.posX+platform.width &&
+      sharkVPos < platform.posY
+    ) {
+      sharkVPos = platform.posY
+      jumpCount = 0
+      sharkVSpeed = 0
+    }
+
+    if (platform.hasStim) {
+      stimX = platform.posX + platform.width/2 - platform.stimSprite.width/2
+      stimY = platform.posY
+      if (
+        sharkHPos+sharkWidth > stimX &&
+        sharkHPos < stimX + platform.stimSprite.width &&
+        sharkVPos < stimY + platform.stimSprite.height &&
+        sharkVPos+sharkHeight >= stimY
+      ) {
+        platform.hasStim = false
+        if (stimCount < maxStimCount) {
+          stimCount++
+          addScore(100)
+        } else {
+          addScore(500)
+        }
+      }
+    }
+  }
+
+  const updateScoreDisplayers = dt => {
+    for(let i=0; i<scoreDisplayers.length; i++) {
+      scoreDisplayers[i].cycle += dt
+      if (scoreDisplayers[i].cycle > 0.5) {
+        scoreDisplayers[i].posY += dt * 1000
+        if (scoreDisplayers[i].posY > screenHeight + 50) {
+          scoreDisplayers.splice(i, 1)
+        }
+      }
+    }
   }
 
   this.update = (dt) => {
@@ -220,39 +281,9 @@ let Game = function() {
     generateWorld()
 
     world.forEach(platform => {
-      // shark is within the platform
-      // only handle platform collisions if we are moving down:
-      if (
-        sharkVSpeed < 0 && 
-        prevSharkVPos >= platform.posY &&
-        sharkHPos+sharkWidth+landingGrace > platform.posX &&
-        sharkHPos < platform.posX+platform.width &&
-        sharkVPos < platform.posY
-      ) {
-        sharkVPos = platform.posY
-        jumpCount = 0
-        sharkVSpeed = 0
-      }
-
-      if (platform.hasStim) {
-        stimX = platform.posX + platform.width/2 - platform.stimSprite.width/2
-        stimY = platform.posY
-        if (
-          sharkHPos+sharkWidth > stimX &&
-          sharkHPos < stimX + platform.stimSprite.width &&
-          sharkVPos < stimY + platform.stimSprite.height &&
-          sharkVPos+sharkHeight >= stimY
-        ) {
-          platform.hasStim = false
-          if (stimCount < maxStimCount) {
-            stimCount++
-            score += 100
-          } else {
-            score += 500
-          }
-        }
-      }
+      handleWorldCollision(prevSharkVPos, platform)
     })
+    updateScoreDisplayers(dt)
   }
 
   const renderStartScreen = () => {
@@ -342,13 +373,21 @@ let Game = function() {
   }
 
   const drawCrystalCount = () => {
-    context.drawImage(sprites['iceSymbol'], 0, 0, crystalSymbolWidth*stimCount, crystalSymbolWidth, 5, 40, crystalSymbolWidth*stimCount, crystalSymbolWidth)
+    context.drawImage(sprites['iceSymbol'], (stimsInSymbolImage - maxStimCount) * crystalSymbolWidth, 0, crystalSymbolWidth*stimCount, crystalSymbolWidth, 5, 40, crystalSymbolWidth*stimCount, crystalSymbolWidth)
   }
 
   const drawInGameBestScore = () => {
     context.font = "20px Arial"
+    context.fillStyle = 'white'
     context.textAlign="end"
     context.fillText('BEST: '+bestScore, screenWidth-10,20) 
+  }
+
+  const drawScoreDisplayer = sd => {
+    context.font = sd.fontSize+"px Arial"
+    context.fillStyle = 'lime'
+    context.textAlign = "start"
+    context.fillText(sd.score, sd.posX, screenHeight - sd.posY)
   }
 
   const renderGame = () => {
@@ -357,6 +396,7 @@ let Game = function() {
     if (dashTime > 0) {
       drawDashTrail()
     }
+    scoreDisplayers.forEach(drawScoreDisplayer)
     drawPlayerShark()
     drawInGameScore()
     drawCrystalCount()
