@@ -488,7 +488,7 @@ function startGame() {
 
   const actionFromCanvasLocation = (x, y) => x < canvas.clientWidth / 2 ? ACTION.dash : ACTION.jump
 
-  canvas.addEventListener('touchstart', function(event) {
+  window.addEventListener('touchstart', function(event) {
     for(let i=0;i<event.changedTouches.length;i++) {
       game.action(actionFromCanvasLocation(event.changedTouches[i].clientX, event.changedTouches[i].clientY))
     }
@@ -496,7 +496,7 @@ function startGame() {
     return false
   })
 
-  canvas.addEventListener('touchend', function(event) {
+  window.addEventListener('touchend', function(event) {
     for(let i=0;i<event.changedTouches.length;i++) {
       game.endAction(actionFromCanvasLocation(event.changedTouches[i].clientX, event.changedTouches[i].clientY))
     }
