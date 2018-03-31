@@ -315,7 +315,8 @@ let Game = function() {
     } else {
       context.fillText('Z - jump',50,300)
       context.fillText('X - use crystal',50,350)
-      context.fillText('Press Z or X to start',50,450)
+      context.fillText('F - fullscreen',50,400)
+      context.fillText('Press Z or X to start',50,500)
     }
   }
 
@@ -487,6 +488,11 @@ function startGame() {
 
   window.addEventListener('keydown', function(event) {
     if (event.repeat) return
+    if (event.key == 'f') {
+      if (screenfull.enabled)
+        screenfull.request(document.getElementById('game'))
+      return
+    }
     let action = ACTION.none
     if (event.keyCode == 90) { //z
       action = ACTION.jump
@@ -499,6 +505,7 @@ function startGame() {
   })
 
   window.addEventListener('keyup', function(event) {
+    if (event.key == 'f') return
     game.endAction(event.keyCode == 90 ? ACTION.jump : ACTION.none)
   })
 
