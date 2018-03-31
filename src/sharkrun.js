@@ -318,6 +318,13 @@ let Game = function() {
       context.fillText('F - fullscreen',50,400)
       context.fillText('Press Z or X to start',50,500)
     }
+    context.font = "15px Arial"
+    context.fillStyle = '#f8f'
+    context.fillText('stimsex:', 850, 50)
+    context.fillText('lainnerd', 875, 75)
+    context.fillText('cocomunky', 875, 100)
+    context.fillText('get shark\'d', 875, 125)
+
   }
 
   const renderGameOverScreen = () => {
